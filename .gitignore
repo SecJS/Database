@@ -128,7 +128,4 @@ out
 dist
 build
 
-storage
-gcs-credentials.json
-
 .DS_Store
