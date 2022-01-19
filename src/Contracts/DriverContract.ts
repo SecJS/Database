@@ -7,9 +7,43 @@
  * file that was distributed with this source code.
  */
 
-import { PaginationContract } from './PaginationContract'
+import { PaginatedResponse } from '@secjs/contracts'
+import { TableColumnContract } from './TableColumnContract'
 
 export interface DriverContract {
+  /**
+   * CreateDatabase method
+   *
+   * @param databaseName The database name to be created
+   *
+   */
+  createDatabase(databaseName: string): Promise<void>
+
+  /**
+   * DropDatabase method
+   *
+   * @param databaseName The database name to be dropped
+   *
+   */
+  dropDatabase(databaseName: string): Promise<void>
+
+  /**
+   * CreateTable method
+   *
+   * @param tableName The table name to be created
+   * @param columns The columns of the table
+   *
+   */
+  createTable(tableName: string, columns: TableColumnContract[]): Promise<void>
+
+  /**
+   * DropTable method
+   *
+   * @param tableName The table name to be dropped
+   *
+   */
+  dropTable(tableName: string): Promise<void>
+
   /**
    * Raw method
    *
@@ -20,20 +54,28 @@ export interface DriverContract {
   raw(raw: string, queryValues: string[]): Promise<any>
 
   /**
-   * Table method
+   * Query method
+   *
+   * @return A new instance of queryBuilder
+   *
+   */
+  query(): any
+
+  /**
+   * BuildTable method
    *
    * @param tableName Table selected to run the query.
    *
    */
-  table(tableName: string): DriverContract
+  buildTable(tableName: string): DriverContract
 
   /**
-   * Select method
+   * BuildSelect method
    *
    * @param columns All the columns that will be selected, use * to get all.
    *
    */
-  select(...columns: string[]): DriverContract
+  buildSelect(...columns: string[]): DriverContract
 
   /**
    * Find method
@@ -54,212 +96,395 @@ export interface DriverContract {
   findMany(): Promise<any[]>
 
   /**
-   * Where method
+   * BuildWhere method
    *
-   * @param statements All the statements for where clause.
    *
+   * @param statement Key or an object to make the where
+   * @param value The value, should be null when statement is an object
    */
-  where(...statements: any[]): DriverContract
+  buildWhere(statement: string | Record<string, any>, value?: any): DriverContract
 
   /**
-   * OrWhere method
+   * BuildOrWhere method
    *
-   * @param statements All the statements for more where clauses.
-   *
-   */
-  orWhere(...statements: any[]): DriverContract
-
-  /**
-   * WhereNot method
-   *
-   * @param statements All the statements for whereNot.
+   * @param statement Key or an object to make the where
+   * @param value The value, should be null when statement is an object
    *
    */
-  whereNot(...statements: any[]): DriverContract
+  buildOrWhere(statement: string | Record<string, any>, value?: any): DriverContract
 
   /**
-   * WhereIn method
+   * BuildWhereNot method
    *
-   * @param statements All the statements for whereIn.
+   * @param statement Key or an object to make the where
+   * @param value The value, should be null when statement is an object
    *
    */
-  whereIn(...statements: any[]): DriverContract
+  buildWhereNot(statement: string | Record<string, any>, value?: any): DriverContract
 
   /**
-   * WhereNotIn method
+   * BuildWhereIn method
    *
-   * @param statements All the statements for whereNotIn.
+   * @param columnName The column to make the In.
+   * @param values All the values to make the In.
    *
    */
-  whereNotIn(...statements: any[]): DriverContract
+  buildWhereIn(columnName: string, values: any[]): DriverContract
 
   /**
-   * WhereNotNull method
+   * BuildWhereNotIn method
    *
-   * @param statements All the statements for whereNotNull.
+   * @param columnName The column to make the NotIn.
+   * @param values All the values to make the NotIn.
    *
    */
-  whereNotNull(...statements: any[]): DriverContract
+  buildWhereNotIn(columnName: string, values: any[]): DriverContract
 
   /**
-   * WhereExists method
+   * BuildWhereNull method
    *
-   * @param statements All the statements for whereExists.
+   * @param columnName The columnName for whereNull.
    *
    */
-  whereExists(...statements: any[]): DriverContract
+  buildWhereNull(columnName: string): DriverContract
 
   /**
-   * WhereNotExists method
+   * BuildWhereNotNull method
    *
-   * @param statements All the statements for whereNotExists.
+   * @param columnName The columnName for whereNotNull.
    *
    */
-  whereNotExists(...statements: any[]): DriverContract
+  buildWhereNotNull(columnName: string): DriverContract
 
   /**
-   * WhereBetween method
+   * BuildWhereExists method
    *
-   * @param statements All the statements for whereBetween.
+   * @param callback The callback to be executed in whereExists, could be a query builder too.
    *
    */
-  whereBetween(...statements: any[]): DriverContract
+  buildWhereExists(callback: any): DriverContract
 
   /**
-   * WhereNotBetween method
+   * BuildWhereNotExists method
    *
-   * @param statements All the statements for whereNotBetween.
+   * @param callback The callback to be executed in whereNotExists, could be a query builder too.
    *
    */
-  whereNotBetween(...statements: any[]): DriverContract
+  buildWhereNotExists(callback: any): DriverContract
 
   /**
-   * WhereRaw method
+   * BuildWhereBetween method
+   *
+   * @param columnName The column name to make the whereBetween.
+   * @param values Two values to make the between range
+   *
+   */
+  buildWhereBetween(columnName: string, values: [any, any]): DriverContract
+
+  /**
+   * BuildWhereNotBetween method
+   *
+   * @param columnName The column name to make the whereNotBetween.
+   * @param values Two values to make the not between range
+   *
+   */
+  buildWhereNotBetween(columnName: string, values: [any, any]): DriverContract
+
+  /**
+   * BuildWhereRaw method
    *
    * @param raw Convenience helper for .where(Database.raw(query).
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  whereRaw(raw: string, queryValues: string[]): DriverContract
+  buildWhereRaw(raw: string, queryValues: string[]): DriverContract
 
   /**
-   * InnerJoin method
+   * BuildInnerJoin method
    *
-   * @param joins All joins that will be done in the query.
    *
+   * @param raw Raw query to make the join
    */
-  innerJoin(...joins: any[]): DriverContract
+  buildInnerJoin(raw: string): DriverContract
 
   /**
-   * LeftJoin method
+   * BuildInnerJoin method
    *
-   * @param joins All joins that will be done in the query.
    *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param column2 Second column of the verification
    */
-  leftJoin(...joins: any[]): DriverContract
+  buildInnerJoin(tableName: string, column1: string, column2: string): DriverContract
 
   /**
-   * LeftOuterJoin method
+   * BuildInnerJoin method
    *
-   * @param joins All joins that will be done in the query.
    *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param operator Operation to make in verification such and >=, <, = etc
+   * @param column2 Second column of the verification
    */
-  leftOuterJoin(...joins: any[]): DriverContract
+  buildInnerJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
 
   /**
-   * RightJoin method
+   * BuildLeftJoin method
    *
-   * @param joins All joins that will be done in the query.
    *
+   * @param raw Raw query to make the join
    */
-  rightJoin(...joins: any[]): DriverContract
+  buildLeftJoin(raw: string): DriverContract
 
   /**
-   * RightOuterJoin method
+   * BuildLeftJoin method
    *
-   * @param joins All joins that will be done in the query.
    *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param column2 Second column of the verification
    */
-  rightOuterJoin(...joins: any[]): DriverContract
+  buildLeftJoin(tableName: string, column1: string, column2: string): DriverContract
 
   /**
-   * OuterJoin method
+   * BuildLeftJoin method
    *
-   * @param joins All joins that will be done in the query.
    *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param operator Operation to make in verification such and >=, <, = etc
+   * @param column2 Second column of the verification
    */
-  outerJoin(...joins: any[]): DriverContract
+  buildLeftJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
 
   /**
-   * FullOuterJoin method
+   * BuildLeftOuterJoin method
    *
-   * @param joins All joins that will be done in the query.
    *
+   * @param raw Raw query to make the join
    */
-  fullOuterJoin(...joins: any[]): DriverContract
+  buildLeftOuterJoin(raw: string): DriverContract
 
   /**
-   * CrossJoin method
+   * BuildLeftOuterJoin method
    *
-   * @param joins All joins that will be done in the query.
    *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param column2 Second column of the verification
    */
-  crossJoin(...joins: any[]): DriverContract
+  buildLeftOuterJoin(tableName: string, column1: string, column2: string): DriverContract
 
   /**
-   * JoinRaw method
+   * BuildLeftOuterJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param operator Operation to make in verification such and >=, <, = etc
+   * @param column2 Second column of the verification
+   */
+  buildLeftOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+
+  /**
+   * BuildRightJoin method
+   *
+   *
+   * @param raw Raw query to make the join
+   */
+  buildRightJoin(raw: string): DriverContract
+
+  /**
+   * BuildRightJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param column2 Second column of the verification
+   */
+  buildRightJoin(tableName: string, column1: string, column2: string): DriverContract
+
+  /**
+   * BuildRightJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param operator Operation to make in verification such and >=, <, = etc
+   * @param column2 Second column of the verification
+   */
+  buildRightJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+
+  /**
+   * BuildRightOuterJoin method
+   *
+   *
+   * @param raw Raw query to make the join
+   */
+  buildRightOuterJoin(raw: string): DriverContract
+
+  /**
+   * BuildRightOuterJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param column2 Second column of the verification
+   */
+  buildRightOuterJoin(tableName: string, column1: string, column2: string): DriverContract
+
+  /**
+   * BuildRightOuterJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param operator Operation to make in verification such and >=, <, = etc
+   * @param column2 Second column of the verification
+   */
+  buildRightOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+
+  /**
+   * BuildOuterJoin method
+   *
+   *
+   * @param raw Raw query to make the join
+   */
+  buildOuterJoin(raw: string): DriverContract
+
+  /**
+   * BuildOuterJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param column2 Second column of the verification
+   */
+  buildOuterJoin(tableName: string, column1: string, column2: string): DriverContract
+
+  /**
+   * BuildOuterJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param operator Operation to make in verification such and >=, <, = etc
+   * @param column2 Second column of the verification
+   */
+  buildOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+
+  /**
+   * BuildFullOuterJoin method
+   *
+   *
+   * @param raw Raw query to make the join
+   */
+  buildFullOuterJoin(raw: string): DriverContract
+
+  /**
+   * BuildFullOuterJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param column2 Second column of the verification
+   */
+  buildFullOuterJoin(tableName: string, column1: string, column2: string): DriverContract
+
+  /**
+   * BuildFullOuterJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param operator Operation to make in verification such and >=, <, = etc
+   * @param column2 Second column of the verification
+   */
+  buildFullOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+
+  /**
+   * BuildCrossJoin method
+   *
+   *
+   * @param raw Raw query to make the join
+   */
+  buildCrossJoin(raw: string): DriverContract
+
+  /**
+   * BuildCrossJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param column2 Second column of the verification
+   */
+  buildCrossJoin(tableName: string, column1: string, column2: string): DriverContract
+
+  /**
+   * BuildCrossJoin method
+   *
+   *
+   * @param tableName Table name or a raw query to make the join
+   * @param column1 Column to make the verification
+   * @param operator Operation to make in verification such and >=, <, = etc
+   * @param column2 Second column of the verification
+   */
+  buildCrossJoin(tableName: string, column1?: string, operator?: string, column2?: string): DriverContract
+
+  /**
+   * BuildJoinRaw method
    *
    * @param raw The join as raw.
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  joinRaw(raw: string, queryValues: string[]): DriverContract
+  buildJoinRaw(raw: string, queryValues: string[]): DriverContract
 
   /**
-   * Distinct method
+   * BuildDistinct method
    *
    * @param columns All columns to select as distinct.
    *
    */
-  distinct(...columns: string[]): DriverContract
+  buildDistinct(...columns: string[]): DriverContract
 
   /**
-   * GroupBy method
+   * BuildGroupBy method
    *
    * @param columns All columns to groupBy.
    *
    */
-  groupBy(...columns: string[]): DriverContract
+  buildGroupBy(...columns: string[]): DriverContract
 
   /**
-   * GroupByRaw method
+   * BuildGroupByRaw method
    *
    * @param raw The groupBy as raw
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  groupByRaw(raw: string, queryValues: string[]): DriverContract
+  buildGroupByRaw(raw: string, queryValues: string[]): DriverContract
 
   /**
-   * OrderBy method
+   * BuildOrderBy method
    *
    * @param column Order the query by direction of column.
    * @param direction The direction of the orderBy, could be only asc or desc
    *
    */
-  orderBy(column: string, direction?: 'asc' | 'desc'): DriverContract
+  buildOrderBy(column: string, direction?: 'asc' | 'desc'): DriverContract
 
   /**
-   * OrderByRaw method
+   * BuildOrderByRaw method
    *
    * @param raw The orderBy as raw
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  orderByRaw(raw: string, queryValues: string[]): DriverContract
+  buildOrderByRaw(raw: string, queryValues: string[]): DriverContract
 
   /**
-   * Having method
+   * BuildHaving method
    *
    * Must be called after groupBy()
    *
@@ -268,23 +493,23 @@ export interface DriverContract {
    * @param value The value
    *
    */
-  having(column: string, operator: string, value: any): DriverContract
+  buildHaving(column: string, operator: string, value: any): DriverContract
 
   /**
-   * Offset method
+   * BuildOffset method
    *
    * @param number The offset number
    *
    */
-  offset(number: number): DriverContract
+  buildOffset(number: number): DriverContract
 
   /**
-   * Limit method
+   * BuildLimit method
    *
    * @param number The limit number
    *
    */
-  limit(number: number): DriverContract
+  buildLimit(number: number): DriverContract
 
   /**
    * Insert method
@@ -292,10 +517,21 @@ export interface DriverContract {
    * In case of bulk inserts only the last inserted id will be returned.
    *
    * @param values The values that are going to be inserted.
-   * @return The newly created id.
+   * @return The newly created id or ids inside array.
    *
    */
-  insert(values: any | any[]): Promise<number>
+  insert(values: any | any[]): Promise<string[]>
+
+  /**
+   * InsertAndGet method
+   *
+   * Same as insert but return an array with the values inserted
+   *
+   * @param values The values that are going to be inserted.
+   * @return The array with the values inserted.
+   *
+   */
+  insertAndGet(values: any | any[]): Promise<any[]>
 
   /**
    * Update method
@@ -307,7 +543,19 @@ export interface DriverContract {
    * @return The number of affected rows.
    *
    */
-  update(key: any | string, value?: any): Promise<number>
+  update(key: any | string, value?: any): Promise<string[]>
+
+  /**
+   * UpdateAndGet method
+   *
+   * Same as update but return the payload updated.
+   *
+   * @param key The key to be updated.
+   * @param value The value of the key.
+   * @return The payload updated.
+   *
+   */
+  updateAndGet(key: any | string, value?: any): Promise<any[]>
 
   /**
    * delete method
@@ -325,26 +573,26 @@ export interface DriverContract {
    * @param tableName The table to be truncated
    *
    */
-  truncate(tableName: string): void
+  truncate(tableName: string): Promise<void>
 
-  /**
-   * TruncateAll method
-   *
-   * Removes all tables rows, resetting the tables' auto increment id to 0.
-   *
-   */
-  truncateAll(): void
+  // /**
+  //  * TruncateAll method
+  //  *
+  //  * Removes all tables rows, resetting the tables' auto increment id to 0.
+  //  *
+  //  */
+  // truncateAll(): void
 
   /**
    * ForPage method
    *
-   * Pagination
+   * Pagination without PaginatedResponse
    *
    * @param page The page
    * @param limit The limit = 20
    *
    */
-  forPage(page: number, limit: number): Promise<PaginationContract>
+  forPage(page: number, limit: number): Promise<any[]>
 
   /**
    * Paginate method
@@ -353,9 +601,10 @@ export interface DriverContract {
    *
    * @param page The page
    * @param limit The limit = 20
+   * @param resourceUrl The resourceUrl from the request to make the links
    *
    */
-  paginate(page: number, limit: number): Promise<PaginationContract>
+  paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>>
 
   /**
    * Count method
@@ -364,7 +613,7 @@ export interface DriverContract {
    * @return total The total
    *
    */
-  count(column?: string): number
+  count(column?: string): Promise<number>
 
   /**
    * CountDistinct method
@@ -373,7 +622,7 @@ export interface DriverContract {
    * @return total The total
    *
    */
-  countDistinct(column: string): number
+  countDistinct(column: string): Promise<number>
 
   /**
    * Min method
@@ -382,7 +631,7 @@ export interface DriverContract {
    * @return total The total
    *
    */
-  min(column: string): number
+  min(column: string): Promise<number>
 
   /**
    * Max method
@@ -391,7 +640,7 @@ export interface DriverContract {
    * @return total The total
    *
    */
-  max(column: string): number
+  max(column: string): Promise<number>
 
   /**
    * Sum method
@@ -400,7 +649,7 @@ export interface DriverContract {
    * @return total The total
    *
    */
-  sum(column: string): number
+  sum(column: string): Promise<number>
 
   /**
    * SumDistinct method
@@ -409,7 +658,7 @@ export interface DriverContract {
    * @return total The total
    *
    */
-  sumDistinct(column: string): number
+  sumDistinct(column: string): Promise<number>
 
   /**
    * Avg method
@@ -418,7 +667,7 @@ export interface DriverContract {
    * @return total The total
    *
    */
-  avg(column: string): number
+  avg(column: string): Promise<number>
 
   /**
    * AvgDistinct method
@@ -427,7 +676,7 @@ export interface DriverContract {
    * @return total The total
    *
    */
-  avgDistinct(column: string): number
+  avgDistinct(column: string): Promise<number>
 
   /**
    * Increment method
@@ -438,7 +687,7 @@ export interface DriverContract {
    * @param value The value
    *
    */
-  increment(column: string, value: any)
+  increment(column: string, value: number)
 
   /**
    * Decrement method
@@ -449,7 +698,7 @@ export interface DriverContract {
    * @param value The value
    *
    */
-  decrement(column: string, value: any)
+  decrement(column: string, value: number)
 
   /**
    * Pluck method
@@ -460,7 +709,7 @@ export interface DriverContract {
    * @return array Only the values of the selected column in the array
    *
    */
-  pluck(column: string): any[]
+  pluck(column: string): Promise<any[]>
 
   /**
    * Clone method
@@ -479,7 +728,7 @@ export interface DriverContract {
    * @return Return information for a given column
    *
    */
-  columnInfo(column: string): DriverContract
+  columnInfo(column: string): Promise<any>
 
   /**
    * Close method
@@ -489,5 +738,5 @@ export interface DriverContract {
    * @param connections If nothing is passed, will close all the connections.
    *
    */
-  close(connections?: string[]): void
+  close(connections?: string[]): Promise<void>
 }

@@ -38,8 +38,8 @@ export default {
       url: Env('DB_URL', ''),
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 3306),
-      database: Env('DB_DATABASE', 'sqlite'),
-      username: Env('DB_USERNAME', 'sqlite'),
+      database: Env('DB_DATABASE', 'mysql'),
+      username: Env('DB_USERNAME', 'root'),
       password: Env('DB_PASSWORD', ''),
     },
 
@@ -48,8 +48,8 @@ export default {
       url: Env('DB_URL', ''),
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 5432),
-      database: Env('DB_DATABASE', 'sqlite'),
-      username: Env('DB_USERNAME', 'sqlite'),
+      database: Env('DB_DATABASE', 'postgres'),
+      username: Env('DB_USERNAME', 'root'),
       password: Env('DB_PASSWORD', ''),
     },
 
@@ -59,7 +59,7 @@ export default {
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 1433),
       database: Env('DB_DATABASE', 'sqlserver'),
-      username: Env('DB_USERNAME', 'sqlserver'),
+      username: Env('DB_USERNAME', 'root'),
       password: Env('DB_PASSWORD', ''),
     },
 
@@ -68,8 +68,8 @@ export default {
       url: Env('DB_URL', ''),
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 27017),
-      database: Env('DB_DATABASE', 'sqlserver'),
-      username: Env('DB_USERNAME', 'sqlserver'),
+      database: Env('DB_DATABASE', 'mongodb'),
+      username: Env('DB_USERNAME', 'root'),
       password: Env('DB_PASSWORD', ''),
     },
 

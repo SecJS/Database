@@ -7,4 +7,550 @@
  * file that was distributed with this source code.
  */
 
-export class PostgreSqlDriver {}
+import knex, { Knex } from 'knex'
+import { Config } from '@secjs/config'
+import { paginate } from '@secjs/utils'
+import { PaginatedResponse } from '@secjs/contracts'
+import { DriverContract } from '../Contracts/DriverContract'
+import { TableColumnContract } from '../Contracts/TableColumnContract'
+
+export class PostgreSqlDriver implements DriverContract {
+  private readonly knexClient: Knex
+  private _defaultTable: string = null
+  private queryBuilder: Knex.QueryBuilder
+
+  private readonly _url: string
+  private readonly _host: string
+  private readonly _port: number
+  private readonly _database: string
+  private readonly _username: string
+  private readonly _password: string
+  private readonly _migrations: string
+
+  constructor(connection: string, configs: any = {}) {
+    const postgreSqlConfig = Config.get(`database.connections.${connection}`)
+
+    this._url = configs.url || postgreSqlConfig.url
+    this._host = configs.host || postgreSqlConfig.host
+    this._port = configs.port || postgreSqlConfig.port
+    this._database = configs.database || postgreSqlConfig.database
+    this._username = configs.username || postgreSqlConfig.username
+    this._password = configs.password || postgreSqlConfig.password
+    this._migrations = configs.migrations || postgreSqlConfig.migrations
+
+    this.knexClient = knex({
+      client: 'pg',
+      connection: {
+        host: this._host,
+        port: this._port,
+        user: this._username,
+        password: this._password,
+        database: this._database,
+      },
+      migrations: {
+        tableName: this._migrations
+      }
+    })
+
+    this.queryBuilder = this.query()
+  }
+
+  async createDatabase(databaseName: string): Promise<void> {
+    await this.knexClient.raw('CREATE DATABASE ??', databaseName)
+  }
+
+  async dropDatabase(databaseName: string): Promise<void> {
+    await this.knexClient.raw('DROP DATABASE IF EXISTS ??', databaseName)
+  }
+
+  async createTable(tableName: string, columns: TableColumnContract[]): Promise<void> {
+    const existsTable = await this.knexClient.schema.hasTable(tableName)
+
+    if (!existsTable) {
+      await this.knexClient.schema.createTable(tableName, (table) => {
+        columns.forEach(column => {
+          column = Object.assign({}, {
+            isUnique: false,
+            isPrimary: false,
+            isNullable: true,
+            autoIncrement: false,
+          }, column)
+
+          const builder = table[column.type](column.name)
+
+          if (column.isUnique) builder.unique()
+          if (column.isPrimary) builder.primary()
+          if (!column.isNullable) builder.notNullable()
+          if (column.autoIncrement) builder.increments()
+        })
+      })
+    }
+  }
+
+  async dropTable(tableName: string): Promise<void> {
+    await this.knexClient.schema.dropTableIfExists(tableName)
+  }
+
+  async avg(column: string): Promise<number> {
+    const data = await this.queryBuilder.avg(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  async avgDistinct(column: string): Promise<number> {
+    const data = await this.queryBuilder.avgDistinct(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  clone(): PostgreSqlDriver {
+    return this
+  }
+
+  async close(connections?: string[]): Promise<void> {
+    await this.knexClient.destroy()
+  }
+
+  async columnInfo(column: string): Promise<any> {
+    const data = await this.queryBuilder.withSchema(column).columnInfo()
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  async count(column = '*'): Promise<number> {
+    const data = await this.queryBuilder.count(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  async countDistinct(column: string): Promise<number> {
+    const data = await this.queryBuilder.countDistinct(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  buildCrossJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.crossJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  async decrement(column: string, value: number) {
+    const data = await this.queryBuilder.decrement(column, value)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  async delete(): Promise<number> {
+    const data = await this.queryBuilder.delete()
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  buildDistinct(...columns: string[]): PostgreSqlDriver {
+   this.queryBuilder = this.queryBuilder.distinct(...columns)
+
+    return this
+  }
+
+  async find(): Promise<any> {
+    const data = await this.queryBuilder.first()
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  async findMany(): Promise<any[]> {
+    const data = await this.queryBuilder
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+f
+  async forPage(page: number, limit: number): Promise<any[]> {
+    const data = await this.queryBuilder.offset(page).limit(limit)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  buildFullOuterJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.fullOuterJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildGroupBy(...columns: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.groupBy(...columns)
+
+    return this
+  }
+
+  buildGroupByRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
+
+    return this
+  }
+
+  buildHaving(column: string, operator: string, value: any): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.having(column, operator, value)
+
+    return this
+  }
+
+  async increment(column: string, value: number) {
+    const data = await this.knexClient.increment(column, value)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  buildInnerJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.innerJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  async insert(values: any | any[]): Promise<string[]> {
+    const insert: any[] = await this.queryBuilder.insert(values, 'id')
+
+    this.queryBuilder = this.query()
+
+    return insert.map(i => `${i.id}`)
+  }
+
+  async insertAndGet(values: any | any[]): Promise<any[]> {
+    const promises = []
+
+    const arrayOfId = await this.insert(values)
+
+    arrayOfId.forEach(id => {
+      const query = this.query()
+
+      promises.push(query.where('id', id).first())
+    })
+
+    return Promise.all(promises)
+  }
+
+  buildJoinRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
+
+    return this
+  }
+
+  buildLeftJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.leftJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildLeftOuterJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.leftOuterJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildLimit(number: number): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.limit(number)
+
+    return this
+  }
+
+  async max(column: string): Promise<number> {
+    const data = await this.queryBuilder.max(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  async min(column: string): Promise<number> {
+    const data = await this.queryBuilder.min(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  buildOffset(number: number): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.offset(number)
+
+    return this
+  }
+
+  buildOrWhere(statement: string | Record<string, any>, value?: any): PostgreSqlDriver {
+    if (typeof statement === 'object') {
+      this.queryBuilder = this.queryBuilder.where(statement)
+
+      return this
+    }
+
+    this.queryBuilder = this.queryBuilder.where(statement, value)
+
+    return this
+  }
+
+  buildOrderBy(column: string, direction?: "asc" | "desc"): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.orderBy(column, direction)
+
+    return this
+  }
+
+  buildOrderByRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
+
+    return this
+  }
+
+  buildOuterJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.outerJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  async paginate(page: number, limit: number, resourceUrl = '/api'): Promise<PaginatedResponse<any>> {
+    const clonedQuery = this.cloneQuery()
+
+    const data = await this.findMany()
+    const count = await clonedQuery.count()
+
+    return paginate(data, count, { page, limit, resourceUrl })
+  }
+
+  async pluck(column: string): Promise<any[]> {
+    const data = await this.queryBuilder.pluck(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  async raw(...args): Promise<any> {
+    return this.knexClient.raw(args)
+  }
+
+  cloneQuery(): Knex.QueryBuilder {
+    return this.queryBuilder.clone()
+  }
+
+  query(): Knex.QueryBuilder {
+    const query = this.knexClient.queryBuilder()
+
+    if (this._defaultTable) query.table(this._defaultTable)
+
+    return query
+  }
+
+  buildRightJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.rightJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildRightOuterJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.rightOuterJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildSelect(...columns: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.select(...columns)
+
+    return this
+  }
+
+  async sum(column: string): Promise<number> {
+    const data = await this.queryBuilder.sum(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  async sumDistinct(column: string): Promise<number> {
+    const data = await this.queryBuilder.sumDistinct(column)
+
+    this.queryBuilder = this.query()
+
+    return data
+  }
+
+  buildTable(tableName: string): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.table(tableName)
+
+    this._defaultTable = tableName
+
+    return this
+  }
+
+  async truncate(tableName: string): Promise<void> {
+    await this.knexClient.table(tableName).truncate()
+  }
+
+  async update(key: any, value?: any): Promise<string[]> {
+    if (typeof key === 'object') {
+      const data: any[] = await this.queryBuilder.update(key)
+
+      this.queryBuilder = this.query()
+
+      return data.map(i => `${i.id}`)
+    }
+
+    const data: any[] = await this.queryBuilder.update(key, value, 'id')
+
+    this.queryBuilder = this.query()
+
+    return data.map(i => `${i.id}`)
+  }
+
+  async updateAndGet(key: any, value?: any): Promise<any[]> {
+    const promises = []
+
+    const arrayOfId = await this.update(key, value)
+
+    arrayOfId.forEach(id => {
+      const query = this.query()
+
+      promises.push(query.where('id', id).first())
+    })
+
+    return Promise.all(promises)
+  }
+
+  buildWhere(statement: string | Record<string, any>, value?: any): PostgreSqlDriver {
+    if (typeof statement === 'object') {
+      this.queryBuilder = this.queryBuilder.where(statement)
+
+      return this
+    }
+
+    this.queryBuilder = this.queryBuilder.where(statement, value)
+
+    return this
+  }
+
+  buildWhereBetween(columnName: string, values: [any, any]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereBetween(columnName, values)
+
+    return this
+  }
+
+  buildWhereExists(callback: any): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereExists(callback)
+
+    return this
+  }
+
+  buildWhereIn(columnName: string, values: any[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereIn(columnName, values)
+
+    return this
+  }
+
+  buildWhereNot(statement: string | Record<string, any>, value?: any): PostgreSqlDriver {
+    if (typeof statement === 'object') {
+      this.queryBuilder = this.queryBuilder.whereNot(statement)
+
+      return this
+    }
+
+    this.queryBuilder = this.queryBuilder.whereNot(statement, value)
+
+    return this
+  }
+
+  buildWhereNotBetween(columnName: string, values: [any, any]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereNotBetween(columnName, values)
+
+    return this
+  }
+
+  buildWhereNotExists(callback: any): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereNotExists(callback)
+
+    return this
+  }
+
+  buildWhereNotIn(columnName: string, values: any[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereNotIn(columnName, values)
+
+    return this
+  }
+
+  buildWhereNull(columnName: string): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereNull(columnName)
+
+    return this
+  }
+
+  buildWhereNotNull(columnName: string): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereNotNull(columnName)
+
+    return this
+  }
+
+  buildWhereRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.whereRaw(raw, queryValues)
+
+    return this
+  }
+}
