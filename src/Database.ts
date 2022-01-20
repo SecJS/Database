@@ -100,6 +100,31 @@ export class Database {
   }
 
   /**
+   * BeginTransaction method
+   *
+   * Type this with your specific query builder
+   *
+   * @return The transaction started to make the queries
+   *
+   */
+  async beginTransaction<T = any>(): Promise<T> {
+    return this._driver.beginTransaction()
+  }
+
+  /**
+   * Transaction method
+   *
+   * Type this with your specific query builder
+   * Use to create the transaction in a single callback
+   *
+   * @return void
+   *
+   */
+  async transaction<T = any>(callback: (trx: T) => Promise<void>): Promise<void> {
+    return this._driver.transaction(callback)
+  }
+
+  /**
    * CreateDatabase method
    *
    * @param databaseName The database name to be created

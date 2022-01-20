@@ -12,6 +12,24 @@ import { TableColumnContract } from './TableColumnContract'
 
 export interface DriverContract {
   /**
+   * BeginTransaction method
+   *
+   * @return The transaction started to make the queries
+   *
+   */
+  beginTransaction(): Promise<any>
+
+  /**
+   * Transaction method
+   *
+   * Use to create the transaction in a single callback
+   *
+   * @return void
+   *
+   */
+  transaction(callback: (trx: any) => Promise<void>): Promise<void>
+
+  /**
    * CreateDatabase method
    *
    * @param databaseName The database name to be created

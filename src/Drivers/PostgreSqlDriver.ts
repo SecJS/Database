@@ -25,6 +25,50 @@ export class PostgreSqlDriver implements DriverContract {
     this.queryBuilder = this.query()
   }
 
+  query(): Knex.QueryBuilder {
+    const query = this.knexClient.queryBuilder()
+
+    if (this._defaultTable) query.table(this._defaultTable)
+
+    const handler = {
+      get: (target, propertyKey) => {
+        const protectedMethods = [
+          'pluck',
+          'insert',
+          'update',
+          'delete',
+          'first',
+          'min',
+          'max',
+          'sum',
+          'sumDistinct',
+          'avg',
+          'avgDistinct',
+          'count',
+          'countDistinct',
+          'increment',
+          'decrement'
+        ]
+
+        if (protectedMethods.includes(propertyKey)) {
+          this.queryBuilder = this.query()
+        }
+
+        return target[propertyKey]
+      }
+    }
+
+    return new Proxy<Knex.QueryBuilder>(query, handler)
+  }
+
+  async beginTransaction(): Promise<Knex.Transaction> {
+    return this.knexClient.transaction()
+  }
+
+  async transaction(callback: (trx: Knex.Transaction) => Promise<void>): Promise<void> {
+    await this.knexClient.transaction(callback)
+  }
+
   async createDatabase(databaseName: string): Promise<void> {
     await this.knexClient.raw('CREATE DATABASE ??', databaseName)
   }
@@ -160,42 +204,6 @@ f
 
   cloneQuery(): Knex.QueryBuilder {
     return this.queryBuilder.clone()
-  }
-
-  query(): Knex.QueryBuilder {
-    const query = this.knexClient.queryBuilder()
-
-    if (this._defaultTable) query.table(this._defaultTable)
-
-    const handler = {
-      get: (target, propertyKey) => {
-        const protectedMethods = [
-          'pluck',
-          'insert',
-          'update',
-          'delete',
-          'first',
-          'min',
-          'max',
-          'sum',
-          'sumDistinct',
-          'avg',
-          'avgDistinct',
-          'count',
-          'countDistinct',
-          'increment',
-          'decrement'
-        ]
-
-        if (protectedMethods.includes(propertyKey)) {
-          this.queryBuilder = this.query()
-        }
-
-        return target[propertyKey]
-      }
-    }
-
-    return new Proxy<Knex.QueryBuilder>(query, handler)
   }
 
   async sum(column: string): Promise<number> {
