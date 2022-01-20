@@ -7,9 +7,9 @@
  * file that was distributed with this source code.
  */
 
-import knex, { Knex } from 'knex'
-import { Config } from '@secjs/config'
+import { Knex } from 'knex'
 import { paginate } from '@secjs/utils'
+import { DriverResolver } from './DriverResolver'
 import { PaginatedResponse } from '@secjs/contracts'
 import { DriverContract } from '../Contracts/DriverContract'
 import { TableColumnContract } from '../Contracts/TableColumnContract'
@@ -19,38 +19,8 @@ export class PostgreSqlDriver implements DriverContract {
   private _defaultTable: string = null
   private queryBuilder: Knex.QueryBuilder
 
-  private readonly _url: string
-  private readonly _host: string
-  private readonly _port: number
-  private readonly _database: string
-  private readonly _username: string
-  private readonly _password: string
-  private readonly _migrations: string
-
   constructor(connection: string, configs: any = {}) {
-    const postgreSqlConfig = Config.get(`database.connections.${connection}`)
-
-    this._url = configs.url || postgreSqlConfig.url
-    this._host = configs.host || postgreSqlConfig.host
-    this._port = configs.port || postgreSqlConfig.port
-    this._database = configs.database || postgreSqlConfig.database
-    this._username = configs.username || postgreSqlConfig.username
-    this._password = configs.password || postgreSqlConfig.password
-    this._migrations = configs.migrations || postgreSqlConfig.migrations
-
-    this.knexClient = knex({
-      client: 'pg',
-      connection: {
-        host: this._host,
-        port: this._port,
-        user: this._username,
-        password: this._password,
-        database: this._database,
-      },
-      migrations: {
-        tableName: this._migrations
-      }
-    })
+    this.knexClient = DriverResolver.knex('pg', connection, configs)
 
     this.queryBuilder = this.query()
   }
