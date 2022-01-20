@@ -119,29 +119,12 @@ export class PostgreSqlDriver implements DriverContract {
     return this.queryBuilder.countDistinct(column)
   }
 
-  buildCrossJoin(
-    tableName: string,
-    column1?: string,
-    operator?: string,
-    column2?: string
-  ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.crossJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
   async decrement(column: string, value: number) {
     return this.queryBuilder.decrement(column, value)
   }
 
   async delete(): Promise<number> {
     return this.queryBuilder.delete()
-  }
-
-  buildDistinct(...columns: string[]): PostgreSqlDriver {
-   this.queryBuilder = this.queryBuilder.distinct(...columns)
-
-    return this
   }
 
   async find(): Promise<any> {
@@ -157,55 +140,7 @@ export class PostgreSqlDriver implements DriverContract {
   }
 f
   async forPage(page: number, limit: number): Promise<any[]> {
-    const data = await this.queryBuilder.offset(page).limit(limit)
-
-    this.queryBuilder = this.query()
-
-    return data
-  }
-
-  buildFullOuterJoin(
-    tableName: string,
-    column1?: string,
-    operator?: string,
-    column2?: string
-  ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.fullOuterJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildGroupBy(...columns: string[]): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.groupBy(...columns)
-
-    return this
-  }
-
-  buildGroupByRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
-
-    return this
-  }
-
-  buildHaving(column: string, operator: string, value: any): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.having(column, operator, value)
-
-    return this
-  }
-
-  async increment(column: string, value: number) {
-    return this.knexClient.increment(column, value)
-  }
-
-  buildInnerJoin(
-    tableName: string,
-    column1?: string,
-    operator?: string,
-    column2?: string
-  ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.innerJoin(tableName, column1, operator, column2)
-
-    return this
+    return this.buildOffset(page).buildLimit(limit).findMany()
   }
 
   async insert(values: any | any[]): Promise<string[]> {
@@ -228,87 +163,12 @@ f
     return Promise.all(promises)
   }
 
-  buildJoinRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
-
-    return this
-  }
-
-  buildLeftJoin(
-    tableName: string,
-    column1?: string,
-    operator?: string,
-    column2?: string
-  ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.leftJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildLeftOuterJoin(
-    tableName: string,
-    column1?: string,
-    operator?: string,
-    column2?: string
-  ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.leftOuterJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildLimit(number: number): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.limit(number)
-
-    return this
-  }
-
   async max(column: string): Promise<number> {
     return this.queryBuilder.max(column)
   }
 
   async min(column: string): Promise<number> {
     return this.queryBuilder.min(column)
-  }
-
-  buildOffset(number: number): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.offset(number)
-
-    return this
-  }
-
-  buildOrWhere(statement: string | Record<string, any>, value?: any): PostgreSqlDriver {
-    if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.where(statement)
-
-      return this
-    }
-
-    this.queryBuilder = this.queryBuilder.where(statement, value)
-
-    return this
-  }
-
-  buildOrderBy(column: string, direction?: "asc" | "desc"): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.orderBy(column, direction)
-
-    return this
-  }
-
-  buildOrderByRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
-
-    return this
-  }
-
-  buildOuterJoin(
-    tableName: string,
-    column1?: string,
-    operator?: string,
-    column2?: string
-  ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.outerJoin(tableName, column1, operator, column2)
-
-    return this
   }
 
   async paginate(page: number, limit: number, resourceUrl = '/api'): Promise<PaginatedResponse<any>> {
@@ -368,48 +228,12 @@ f
     return new Proxy<Knex.QueryBuilder>(query, handler)
   }
 
-  buildRightJoin(
-    tableName: string,
-    column1?: string,
-    operator?: string,
-    column2?: string
-  ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.rightJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildRightOuterJoin(
-    tableName: string,
-    column1?: string,
-    operator?: string,
-    column2?: string
-  ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.rightOuterJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildSelect(...columns: string[]): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.select(...columns)
-
-    return this
-  }
-
   async sum(column: string): Promise<number> {
     return this.queryBuilder.sum(column)
   }
 
   async sumDistinct(column: string): Promise<number> {
     return this.queryBuilder.sumDistinct(column)
-  }
-
-  buildTable(tableName: string): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.table(tableName)
-
-    this._defaultTable = tableName
-
-    return this
   }
 
   async truncate(tableName: string): Promise<void> {
@@ -440,6 +264,178 @@ f
     })
 
     return Promise.all(promises)
+  }
+
+  async increment(column: string, value: number) {
+    return this.knexClient.increment(column, value)
+  }
+
+  buildCrossJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.crossJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildDistinct(...columns: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.distinct(...columns)
+
+    return this
+  }
+
+  buildFullOuterJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.fullOuterJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildGroupBy(...columns: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.groupBy(...columns)
+
+    return this
+  }
+
+  buildGroupByRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
+
+    return this
+  }
+
+  buildHaving(column: string, operator: string, value: any): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.having(column, operator, value)
+
+    return this
+  }
+
+  buildInnerJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.innerJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildJoinRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
+
+    return this
+  }
+
+  buildLeftJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.leftJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildLeftOuterJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.leftOuterJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildLimit(number: number): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.limit(number)
+
+    return this
+  }
+
+  buildOffset(number: number): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.offset(number)
+
+    return this
+  }
+
+  buildOrWhere(statement: string | Record<string, any>, value?: any): PostgreSqlDriver {
+    if (typeof statement === 'object') {
+      this.queryBuilder = this.queryBuilder.where(statement)
+
+      return this
+    }
+
+    this.queryBuilder = this.queryBuilder.where(statement, value)
+
+    return this
+  }
+
+  buildOrderBy(column: string, direction?: "asc" | "desc"): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.orderBy(column, direction)
+
+    return this
+  }
+
+  buildOrderByRaw(raw: string, queryValues: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
+
+    return this
+  }
+
+  buildOuterJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.outerJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildRightJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.rightJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildRightOuterJoin(
+    tableName: string,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.rightOuterJoin(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildSelect(...columns: string[]): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.select(...columns)
+
+    return this
+  }
+
+  buildTable(tableName: string): PostgreSqlDriver {
+    this.queryBuilder = this.queryBuilder.table(tableName)
+
+    this._defaultTable = tableName
+
+    return this
   }
 
   buildWhere(statement: string | Record<string, any>, value?: any): PostgreSqlDriver {
