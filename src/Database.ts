@@ -100,6 +100,18 @@ export class Database {
   }
 
   /**
+   * CloneQuery method
+   *
+   * Clone the current query chain for later usage
+   *
+   * @return driver Will return the actual query chain
+   *
+   */
+  cloneQuery<T = any>(): T {
+    return this._driver.cloneQuery()
+  }
+
+  /**
    * BeginTransaction method
    *
    * Type this with your specific query builder
@@ -860,18 +872,6 @@ export class Database {
    */
   async pluck(column: string): Promise<any[]> {
     return this._driver.pluck(column)
-  }
-
-  /**
-   * Clone method
-   *
-   * Clone the current query chain for later usage
-   *
-   * @return driver Will return the actual query chain
-   *
-   */
-  clone(): any {
-    return this._driver.clone()
   }
 
   /**

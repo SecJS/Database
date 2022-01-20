@@ -51,6 +51,39 @@ describe('\n Database PostgreSQL Class', () => {
     expect(iphones.length).toBe(3)
   })
 
+  it('should get all the products from database paginated', async () => {
+    await database.insert([
+      { name: 'iPhone 10' },
+      { name: 'iPhone 11' },
+      { name: 'iPhone 12' }
+    ])
+
+    const paginatedResponse = await database.paginate(0, 2, '/products')
+
+    expect(paginatedResponse.data.length).toBe(2)
+    expect(paginatedResponse.meta.itemCount).toBe(2)
+    expect(paginatedResponse.meta.totalItems).toBe(3)
+    expect(paginatedResponse.meta.totalPages).toBe(2)
+    expect(paginatedResponse.meta.currentPage).toBe(0)
+    expect(paginatedResponse.meta.itemsPerPage).toBe(2)
+    expect(paginatedResponse.links.first).toBe('/products?limit=2')
+    expect(paginatedResponse.links.previous).toBe('/products?page=0&limit=2')
+    expect(paginatedResponse.links.next).toBe('/products?page=1&limit=2')
+    expect(paginatedResponse.links.last).toBe('/products?page=2&limit=2')
+  })
+
+  it('should get all the products paginated but without paginated response', async () => {
+    await database.insert([
+      { name: 'iPhone 10' },
+      { name: 'iPhone 11' },
+      { name: 'iPhone 12' }
+    ])
+
+    const data = await database.forPage(0, 2)
+
+    expect(data.length).toBe(2)
+  })
+
   it('should update the product in database', async () => {
     const [iphone] = await database.insertAndGet({ name: 'iPhone 10'})
 

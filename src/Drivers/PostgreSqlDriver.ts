@@ -61,6 +61,10 @@ export class PostgreSqlDriver implements DriverContract {
     return new Proxy<Knex.QueryBuilder>(query, handler)
   }
 
+  cloneQuery(): Knex.QueryBuilder {
+    return this.queryBuilder.clone()
+  }
+
   async beginTransaction(): Promise<Knex.Transaction> {
     return this.knexClient.transaction()
   }
@@ -113,10 +117,6 @@ export class PostgreSqlDriver implements DriverContract {
     return this.queryBuilder.avgDistinct(column)
   }
 
-  clone(): PostgreSqlDriver {
-    return this
-  }
-
   async close(connections?: string[]): Promise<void> {
     await this.knexClient.destroy()
   }
@@ -126,11 +126,15 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   async count(column = '*'): Promise<number> {
-    return this.queryBuilder.count(column)
+    const [count] = await this.queryBuilder.count(column)
+
+    return parseInt(count['count'])
   }
 
   async countDistinct(column: string): Promise<number> {
-    return this.queryBuilder.countDistinct(column)
+    const [countDistinct] = await this.queryBuilder.countDistinct(column)
+
+    return parseInt(countDistinct['count'])
   }
 
   async decrement(column: string, value: number) {
@@ -152,7 +156,7 @@ export class PostgreSqlDriver implements DriverContract {
 
     return data
   }
-f
+
   async forPage(page: number, limit: number): Promise<any[]> {
     return this.buildOffset(page).buildLimit(limit).findMany()
   }
@@ -186,10 +190,12 @@ f
   }
 
   async paginate(page: number, limit: number, resourceUrl = '/api'): Promise<PaginatedResponse<any>> {
-    const clonedQuery = this.cloneQuery()
+    const data = await this
+      .buildOffset(page)
+      .buildLimit(limit)
+      .findMany()
 
-    const data = await this.findMany()
-    const count = await clonedQuery.count()
+    const count = await this.count()
 
     return paginate(data, count, { page, limit, resourceUrl })
   }
@@ -200,10 +206,6 @@ f
 
   async raw(...args): Promise<any> {
     return this.knexClient.raw(args)
-  }
-
-  cloneQuery(): Knex.QueryBuilder {
-    return this.queryBuilder.clone()
   }
 
   async sum(column: string): Promise<number> {

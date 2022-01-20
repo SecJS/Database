@@ -12,6 +12,16 @@ import { TableColumnContract } from './TableColumnContract'
 
 export interface DriverContract {
   /**
+   * CloneQuery method
+   *
+   * Clone the current query chain for later usage
+   *
+   * @return Return the actual query chain
+   *
+   */
+  cloneQuery(): any
+
+  /**
    * BeginTransaction method
    *
    * @return The transaction started to make the queries
@@ -728,16 +738,6 @@ export interface DriverContract {
    *
    */
   pluck(column: string): Promise<any[]>
-
-  /**
-   * Clone method
-   *
-   * Clone the current query chain for later usage
-   *
-   * @return driver Will return the actual query chain
-   *
-   */
-  clone(): DriverContract
 
   /**
    * ColumnInfo method
