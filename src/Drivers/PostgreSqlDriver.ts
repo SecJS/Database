@@ -92,19 +92,11 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   async avg(column: string): Promise<number> {
-    const data = await this.queryBuilder.avg(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.avg(column)
   }
 
   async avgDistinct(column: string): Promise<number> {
-    const data = await this.queryBuilder.avgDistinct(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.avgDistinct(column)
   }
 
   clone(): PostgreSqlDriver {
@@ -116,27 +108,15 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   async columnInfo(column: string): Promise<any> {
-    const data = await this.queryBuilder.withSchema(column).columnInfo()
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.knexClient.withSchema(column).columnInfo()
   }
 
   async count(column = '*'): Promise<number> {
-    const data = await this.queryBuilder.count(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.count(column)
   }
 
   async countDistinct(column: string): Promise<number> {
-    const data = await this.queryBuilder.countDistinct(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.countDistinct(column)
   }
 
   buildCrossJoin(
@@ -151,19 +131,11 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   async decrement(column: string, value: number) {
-    const data = await this.queryBuilder.decrement(column, value)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.decrement(column, value)
   }
 
   async delete(): Promise<number> {
-    const data = await this.queryBuilder.delete()
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.delete()
   }
 
   buildDistinct(...columns: string[]): PostgreSqlDriver {
@@ -173,11 +145,7 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   async find(): Promise<any> {
-    const data = await this.queryBuilder.first()
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.first()
   }
 
   async findMany(): Promise<any[]> {
@@ -226,11 +194,7 @@ f
   }
 
   async increment(column: string, value: number) {
-    const data = await this.knexClient.increment(column, value)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.knexClient.increment(column, value)
   }
 
   buildInnerJoin(
@@ -246,8 +210,6 @@ f
 
   async insert(values: any | any[]): Promise<string[]> {
     const insert: any[] = await this.queryBuilder.insert(values, 'id')
-
-    this.queryBuilder = this.query()
 
     return insert.map(i => `${i.id}`)
   }
@@ -301,19 +263,11 @@ f
   }
 
   async max(column: string): Promise<number> {
-    const data = await this.queryBuilder.max(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.max(column)
   }
 
   async min(column: string): Promise<number> {
-    const data = await this.queryBuilder.min(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.min(column)
   }
 
   buildOffset(number: number): PostgreSqlDriver {
@@ -367,11 +321,7 @@ f
   }
 
   async pluck(column: string): Promise<any[]> {
-    const data = await this.queryBuilder.pluck(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.pluck(column)
   }
 
   async raw(...args): Promise<any> {
@@ -387,7 +337,35 @@ f
 
     if (this._defaultTable) query.table(this._defaultTable)
 
-    return query
+    const handler = {
+      get: (target, propertyKey) => {
+        const protectedMethods = [
+          'pluck',
+          'insert',
+          'update',
+          'delete',
+          'first',
+          'min',
+          'max',
+          'sum',
+          'sumDistinct',
+          'avg',
+          'avgDistinct',
+          'count',
+          'countDistinct',
+          'increment',
+          'decrement'
+        ]
+
+        if (protectedMethods.includes(propertyKey)) {
+          this.queryBuilder = this.query()
+        }
+
+        return target[propertyKey]
+      }
+    }
+
+    return new Proxy<Knex.QueryBuilder>(query, handler)
   }
 
   buildRightJoin(
@@ -419,19 +397,11 @@ f
   }
 
   async sum(column: string): Promise<number> {
-    const data = await this.queryBuilder.sum(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.sum(column)
   }
 
   async sumDistinct(column: string): Promise<number> {
-    const data = await this.queryBuilder.sumDistinct(column)
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.queryBuilder.sumDistinct(column)
   }
 
   buildTable(tableName: string): PostgreSqlDriver {
@@ -450,14 +420,10 @@ f
     if (typeof key === 'object') {
       const data: any[] = await this.queryBuilder.update(key)
 
-      this.queryBuilder = this.query()
-
       return data.map(i => `${i.id}`)
     }
 
     const data: any[] = await this.queryBuilder.update(key, value, 'id')
-
-    this.queryBuilder = this.query()
 
     return data.map(i => `${i.id}`)
   }
