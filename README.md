@@ -19,7 +19,7 @@
   <img alt="Commitizen" src="https://img.shields.io/badge/commitizen-friendly-brightgreen?style=for-the-badge&logo=appveyor">
 </p>
 
-The intention behind this repository is to always maintain a `Storage` class to manipulate files using any driver.
+The intention behind this repository is to always maintain a `Database` class to manipulate data using any database driver (SQL and NoSQL).
 
 <img src=".github/database.png" width="200px" align="right" hspace="30px" vspace="100px">
 
