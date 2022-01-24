@@ -14,4 +14,5 @@ export interface TableColumnContract {
   isPrimary?: boolean
   isNullable?: boolean
   autoIncrement?: boolean
+  references?: { column: string, table: string }
 }

@@ -61,6 +61,10 @@ export class PostgreSqlDriver implements DriverContract {
     return new Proxy<Knex.QueryBuilder>(query, handler)
   }
 
+  on(event: string, callback: (...params: any) => void) {
+    this.queryBuilder.on(event, callback)
+  }
+
   cloneQuery(): Knex.QueryBuilder {
     return this.queryBuilder.clone()
   }
@@ -100,6 +104,7 @@ export class PostgreSqlDriver implements DriverContract {
           if (column.isPrimary) builder.primary()
           if (!column.isNullable) builder.notNullable()
           if (column.autoIncrement) builder.increments()
+          if (column.references) builder.references(column.references.column).inTable(column.references.table)
         })
       })
     }
@@ -251,12 +256,14 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   buildCrossJoin(
-    tableName: string,
+    tableName: string | Knex.Raw,
     column1?: string,
     operator?: string,
     column2?: string
   ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.crossJoin(tableName, column1, operator, column2)
+    if (!column1) this.queryBuilder = this.queryBuilder.crossJoin(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.crossJoin(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.crossJoin(tableName, column1, operator, column2)
 
     return this
   }
@@ -268,12 +275,14 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   buildFullOuterJoin(
-    tableName: string,
+    tableName: string | Knex.Raw,
     column1?: string,
     operator?: string,
     column2?: string
   ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.fullOuterJoin(tableName, column1, operator, column2)
+    if (!column1) this.queryBuilder = this.queryBuilder.fullOuterJoin(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.fullOuterJoin(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.fullOuterJoin(tableName, column1, operator, column2)
 
     return this
   }
@@ -296,13 +305,28 @@ export class PostgreSqlDriver implements DriverContract {
     return this
   }
 
-  buildInnerJoin(
-    tableName: string,
+  buildJoin(
+    tableName: string | Knex.Raw,
     column1?: string,
     operator?: string,
     column2?: string
   ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.innerJoin(tableName, column1, operator, column2)
+    if (!column1) this.queryBuilder = this.queryBuilder.join(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.join(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.join(tableName, column1, operator, column2)
+
+    return this
+  }
+
+  buildInnerJoin(
+    tableName: string | Knex.Raw,
+    column1?: string,
+    operator?: string,
+    column2?: string
+  ): PostgreSqlDriver {
+    if (!column1) this.queryBuilder = this.queryBuilder.innerJoin(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.innerJoin(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.innerJoin(tableName, column1, operator, column2)
 
     return this
   }
@@ -314,23 +338,27 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   buildLeftJoin(
-    tableName: string,
+    tableName: string | Knex.Raw,
     column1?: string,
     operator?: string,
     column2?: string
   ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.leftJoin(tableName, column1, operator, column2)
+    if (!column1) this.queryBuilder = this.queryBuilder.leftJoin(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.leftJoin(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.leftJoin(tableName, column1, operator, column2)
 
     return this
   }
 
   buildLeftOuterJoin(
-    tableName: string,
+    tableName: string | Knex.Raw,
     column1?: string,
     operator?: string,
     column2?: string
   ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.leftOuterJoin(tableName, column1, operator, column2)
+    if (!column1) this.queryBuilder = this.queryBuilder.leftOuterJoin(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.leftOuterJoin(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.leftOuterJoin(tableName, column1, operator, column2)
 
     return this
   }
@@ -372,34 +400,40 @@ export class PostgreSqlDriver implements DriverContract {
   }
 
   buildOuterJoin(
-    tableName: string,
+    tableName: string | Knex.Raw,
     column1?: string,
     operator?: string,
     column2?: string
   ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.outerJoin(tableName, column1, operator, column2)
+    if (!column1) this.queryBuilder = this.queryBuilder.outerJoin(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.outerJoin(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.outerJoin(tableName, column1, operator, column2)
 
     return this
   }
 
   buildRightJoin(
-    tableName: string,
+    tableName: string | Knex.Raw,
     column1?: string,
     operator?: string,
     column2?: string
   ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.rightJoin(tableName, column1, operator, column2)
+    if (!column1) this.queryBuilder = this.queryBuilder.rightJoin(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.rightJoin(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.rightJoin(tableName, column1, operator, column2)
 
     return this
   }
 
   buildRightOuterJoin(
-    tableName: string,
+    tableName: string | Knex.Raw,
     column1?: string,
     operator?: string,
     column2?: string
   ): PostgreSqlDriver {
-    this.queryBuilder = this.queryBuilder.rightOuterJoin(tableName, column1, operator, column2)
+    if (!column1) this.queryBuilder = this.queryBuilder.rightOuterJoin(<Knex.Raw<any>>tableName)
+    if (operator && !column2) this.queryBuilder = this.queryBuilder.rightOuterJoin(tableName, column1, operator)
+    if (tableName && column2) this.queryBuilder = this.queryBuilder.rightOuterJoin(tableName, column1, operator, column2)
 
     return this
   }

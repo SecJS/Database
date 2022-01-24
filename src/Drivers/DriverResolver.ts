@@ -17,11 +17,11 @@ export class DriverResolver {
     return knex({
       client,
       connection: {
-        host: configs.host || databaseConfig.host,
-        port: configs.port || databaseConfig.port,
-        user: configs.username || databaseConfig.username,
-        password: configs.password || databaseConfig.password,
-        database: configs.database || databaseConfig.database,
+          host: configs.host || databaseConfig.host,
+          port: configs.port || databaseConfig.port,
+          user: configs.username || databaseConfig.username,
+          password: configs.password || databaseConfig.password,
+          database: configs.database || databaseConfig.database,
       },
       migrations: {
         tableName: configs.migrations || databaseConfig.migrations

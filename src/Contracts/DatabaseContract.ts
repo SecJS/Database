@@ -1,16 +1,15 @@
-/**
- * @secjs/database
- *
- * (c) João Lenon <lenon@secjs.com.br>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
-import { PaginatedResponse } from '@secjs/contracts'
 import { TableColumnContract } from './TableColumnContract'
+import { PaginatedResponse } from '@secjs/contracts'
 
-export interface DriverContract {
+export interface DatabaseContract {
+  resetConfigs(): DatabaseContract
+  removeConfig(key: string): DatabaseContract
+  addConfig(key: string, value: any): DatabaseContract
+  connection(connection: string): DatabaseContract
+  changeDefaultConnection(connection: string): DatabaseContract
+
+  // DriverContract Methods
+
   /**
    * On method
    *
@@ -104,7 +103,7 @@ export interface DriverContract {
    * @param tableName Table selected to run the query.
    *
    */
-  buildTable(tableName: string): DriverContract
+  buildTable(tableName: string): DatabaseContract
 
   /**
    * BuildSelect method
@@ -112,7 +111,7 @@ export interface DriverContract {
    * @param columns All the columns that will be selected, use * to get all.
    *
    */
-  buildSelect(...columns: string[]): DriverContract
+  buildSelect(...columns: string[]): DatabaseContract
 
   /**
    * Find method
@@ -139,7 +138,7 @@ export interface DriverContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhere(statement: string | Record<string, any>, value?: any): DriverContract
+  buildWhere(statement: string | Record<string, any>, value?: any): DatabaseContract
 
   /**
    * BuildOrWhere method
@@ -148,7 +147,7 @@ export interface DriverContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildOrWhere(statement: string | Record<string, any>, value?: any): DriverContract
+  buildOrWhere(statement: string | Record<string, any>, value?: any): DatabaseContract
 
   /**
    * BuildWhereNot method
@@ -157,7 +156,7 @@ export interface DriverContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildWhereNot(statement: string | Record<string, any>, value?: any): DriverContract
+  buildWhereNot(statement: string | Record<string, any>, value?: any): DatabaseContract
 
   /**
    * BuildWhereIn method
@@ -166,7 +165,7 @@ export interface DriverContract {
    * @param values All the values to make the In.
    *
    */
-  buildWhereIn(columnName: string, values: any[]): DriverContract
+  buildWhereIn(columnName: string, values: any[]): DatabaseContract
 
   /**
    * BuildWhereNotIn method
@@ -175,7 +174,7 @@ export interface DriverContract {
    * @param values All the values to make the NotIn.
    *
    */
-  buildWhereNotIn(columnName: string, values: any[]): DriverContract
+  buildWhereNotIn(columnName: string, values: any[]): DatabaseContract
 
   /**
    * BuildWhereNull method
@@ -183,7 +182,7 @@ export interface DriverContract {
    * @param columnName The columnName for whereNull.
    *
    */
-  buildWhereNull(columnName: string): DriverContract
+  buildWhereNull(columnName: string): DatabaseContract
 
   /**
    * BuildWhereNotNull method
@@ -191,7 +190,7 @@ export interface DriverContract {
    * @param columnName The columnName for whereNotNull.
    *
    */
-  buildWhereNotNull(columnName: string): DriverContract
+  buildWhereNotNull(columnName: string): DatabaseContract
 
   /**
    * BuildWhereExists method
@@ -199,7 +198,7 @@ export interface DriverContract {
    * @param callback The callback to be executed in whereExists, could be a query builder too.
    *
    */
-  buildWhereExists(callback: any): DriverContract
+  buildWhereExists(callback: any): DatabaseContract
 
   /**
    * BuildWhereNotExists method
@@ -207,7 +206,7 @@ export interface DriverContract {
    * @param callback The callback to be executed in whereNotExists, could be a query builder too.
    *
    */
-  buildWhereNotExists(callback: any): DriverContract
+  buildWhereNotExists(callback: any): DatabaseContract
 
   /**
    * BuildWhereBetween method
@@ -216,7 +215,7 @@ export interface DriverContract {
    * @param values Two values to make the between range
    *
    */
-  buildWhereBetween(columnName: string, values: [any, any]): DriverContract
+  buildWhereBetween(columnName: string, values: [any, any]): DatabaseContract
 
   /**
    * BuildWhereNotBetween method
@@ -225,7 +224,7 @@ export interface DriverContract {
    * @param values Two values to make the not between range
    *
    */
-  buildWhereNotBetween(columnName: string, values: [any, any]): DriverContract
+  buildWhereNotBetween(columnName: string, values: [any, any]): DatabaseContract
 
   /**
    * BuildWhereRaw method
@@ -234,7 +233,7 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildWhereRaw(raw: string, queryValues: string[]): DriverContract
+  buildWhereRaw(raw: string, queryValues: string[]): DatabaseContract
 
   /**
    * BuildJoin method
@@ -242,7 +241,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildJoin(raw: any): DriverContract
+  buildJoin(raw: any): DatabaseContract
 
   /**
    * BuildJoin method
@@ -252,7 +251,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildJoin method
@@ -263,7 +262,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+  buildJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
 
   /**
    * BuildInnerJoin method
@@ -271,7 +270,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildInnerJoin(raw: any): DriverContract
+  buildInnerJoin(raw: any): DatabaseContract
 
   /**
    * BuildInnerJoin method
@@ -281,7 +280,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildInnerJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildInnerJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildInnerJoin method
@@ -292,7 +291,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildInnerJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+  buildInnerJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
 
   /**
    * BuildLeftJoin method
@@ -300,7 +299,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildLeftJoin(raw: string): DriverContract
+  buildLeftJoin(raw: string): DatabaseContract
 
   /**
    * BuildLeftJoin method
@@ -310,7 +309,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildLeftJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildLeftJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildLeftJoin method
@@ -321,7 +320,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildLeftJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+  buildLeftJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
 
   /**
    * BuildLeftOuterJoin method
@@ -329,7 +328,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildLeftOuterJoin(raw: string): DriverContract
+  buildLeftOuterJoin(raw: string): DatabaseContract
 
   /**
    * BuildLeftOuterJoin method
@@ -339,7 +338,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildLeftOuterJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildLeftOuterJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildLeftOuterJoin method
@@ -350,7 +349,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildLeftOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+  buildLeftOuterJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
 
   /**
    * BuildRightJoin method
@@ -358,7 +357,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildRightJoin(raw: string): DriverContract
+  buildRightJoin(raw: string): DatabaseContract
 
   /**
    * BuildRightJoin method
@@ -368,7 +367,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildRightJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildRightJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildRightJoin method
@@ -379,7 +378,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildRightJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+  buildRightJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
 
   /**
    * BuildRightOuterJoin method
@@ -387,7 +386,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildRightOuterJoin(raw: string): DriverContract
+  buildRightOuterJoin(raw: string): DatabaseContract
 
   /**
    * BuildRightOuterJoin method
@@ -397,7 +396,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildRightOuterJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildRightOuterJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildRightOuterJoin method
@@ -408,7 +407,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildRightOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+  buildRightOuterJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
 
   /**
    * BuildOuterJoin method
@@ -416,7 +415,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildOuterJoin(raw: string): DriverContract
+  buildOuterJoin(raw: string): DatabaseContract
 
   /**
    * BuildOuterJoin method
@@ -426,7 +425,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildOuterJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildOuterJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildOuterJoin method
@@ -437,7 +436,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+  buildOuterJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
 
   /**
    * BuildFullOuterJoin method
@@ -445,7 +444,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildFullOuterJoin(raw: string): DriverContract
+  buildFullOuterJoin(raw: string): DatabaseContract
 
   /**
    * BuildFullOuterJoin method
@@ -455,7 +454,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildFullOuterJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildFullOuterJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildFullOuterJoin method
@@ -466,7 +465,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildFullOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
+  buildFullOuterJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
 
   /**
    * BuildCrossJoin method
@@ -474,7 +473,7 @@ export interface DriverContract {
    *
    * @param raw Raw query to make the join
    */
-  buildCrossJoin(raw: string): DriverContract
+  buildCrossJoin(raw: string): DatabaseContract
 
   /**
    * BuildCrossJoin method
@@ -484,7 +483,7 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    */
-  buildCrossJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildCrossJoin(tableName: string, column1: string, column2: string): DatabaseContract
 
   /**
    * BuildCrossJoin method
@@ -495,7 +494,7 @@ export interface DriverContract {
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    */
-  buildCrossJoin(tableName: string, column1?: string, operator?: string, column2?: string): DriverContract
+  buildCrossJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract
 
   /**
    * BuildJoinRaw method
@@ -504,7 +503,7 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildJoinRaw(raw: string, queryValues: string[]): DriverContract
+  buildJoinRaw(raw: string, queryValues: string[]): DatabaseContract
 
   /**
    * BuildDistinct method
@@ -512,7 +511,7 @@ export interface DriverContract {
    * @param columns All columns to select as distinct.
    *
    */
-  buildDistinct(...columns: string[]): DriverContract
+  buildDistinct(...columns: string[]): DatabaseContract
 
   /**
    * BuildGroupBy method
@@ -520,7 +519,7 @@ export interface DriverContract {
    * @param columns All columns to groupBy.
    *
    */
-  buildGroupBy(...columns: string[]): DriverContract
+  buildGroupBy(...columns: string[]): DatabaseContract
 
   /**
    * BuildGroupByRaw method
@@ -529,7 +528,7 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildGroupByRaw(raw: string, queryValues: string[]): DriverContract
+  buildGroupByRaw(raw: string, queryValues: string[]): DatabaseContract
 
   /**
    * BuildOrderBy method
@@ -538,7 +537,7 @@ export interface DriverContract {
    * @param direction The direction of the orderBy, could be only asc or desc
    *
    */
-  buildOrderBy(column: string, direction?: 'asc' | 'desc'): DriverContract
+  buildOrderBy(column: string, direction?: 'asc' | 'desc'): DatabaseContract
 
   /**
    * BuildOrderByRaw method
@@ -547,7 +546,7 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildOrderByRaw(raw: string, queryValues: string[]): DriverContract
+  buildOrderByRaw(raw: string, queryValues: string[]): DatabaseContract
 
   /**
    * BuildHaving method
@@ -559,7 +558,7 @@ export interface DriverContract {
    * @param value The value
    *
    */
-  buildHaving(column: string, operator: string, value: any): DriverContract
+  buildHaving(column: string, operator: string, value: any): DatabaseContract
 
   /**
    * BuildOffset method
@@ -567,7 +566,7 @@ export interface DriverContract {
    * @param number The offset number
    *
    */
-  buildOffset(number: number): DriverContract
+  buildOffset(number: number): DatabaseContract
 
   /**
    * BuildLimit method
@@ -575,7 +574,7 @@ export interface DriverContract {
    * @param number The limit number
    *
    */
-  buildLimit(number: number): DriverContract
+  buildLimit(number: number): DatabaseContract
 
   /**
    * Insert method
