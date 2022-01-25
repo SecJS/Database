@@ -102,6 +102,10 @@ export class Database implements DatabaseContract {
 
   // DriverContract Methods
 
+  async connect(): Promise<void> {
+    await this._driver.connect()
+  }
+
   on(event: string, callback: (...params: any) => void) {
     this._driver.on(event, callback)
   }

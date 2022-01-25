@@ -10,9 +10,11 @@ describe('\n Database PostgreSQL Class', () => {
   beforeEach(async () => {
     await new Config().load()
 
-    database = new Database()
-      .changeDefaultConnection('postgresql')
-      .buildTable('products')
+    database = new Database().changeDefaultConnection('postgresql')
+
+    await database.connect()
+
+    database.buildTable('products')
 
     await database.createTable('products', [
       { name: 'id', type: 'increments', isPrimary: true },

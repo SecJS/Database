@@ -12,6 +12,14 @@ import { TableColumnContract } from './TableColumnContract'
 
 export interface DriverContract {
   /**
+   * Connect method
+   *
+   * The most important method from drivers. Creates the connection with database
+   *
+   */
+  connect(): Promise<void>
+
+  /**
    * On method
    *
    * @param event The event name

@@ -1,5 +1,14 @@
-import { TableColumnContract } from './TableColumnContract'
+/**
+ * @secjs/database
+ *
+ * (c) João Lenon <lenon@secjs.com.br>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 import { PaginatedResponse } from '@secjs/contracts'
+import { TableColumnContract } from './TableColumnContract'
 
 export interface DatabaseContract {
   resetConfigs(): DatabaseContract
@@ -9,6 +18,14 @@ export interface DatabaseContract {
   changeDefaultConnection(connection: string): DatabaseContract
 
   // DriverContract Methods
+
+  /**
+   * Connect method
+   *
+   * The most important method from drivers. Creates the connection with database
+   *
+   */
+  connect(): Promise<void>
 
   /**
    * On method

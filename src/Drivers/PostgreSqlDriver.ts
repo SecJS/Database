@@ -9,20 +9,22 @@
 
 import { Knex } from 'knex'
 import { paginate } from '@secjs/utils'
-import { DriverResolver } from './DriverResolver'
 import { PaginatedResponse } from '@secjs/contracts'
+import { DriverResolver } from '../Resolvers/DriverResolver'
 import { DriverContract } from '../Contracts/DriverContract'
 import { TableColumnContract } from '../Contracts/TableColumnContract'
 
 export class PostgreSqlDriver implements DriverContract {
-  private readonly knexClient: Knex
+  private knexClient: Knex
   private _defaultTable: string = null
   private queryBuilder: Knex.QueryBuilder
 
-  constructor(connection: string, configs: any = {}) {
-    this.knexClient = DriverResolver.knex('pg', connection, configs)
+  private readonly configs: any
+  private readonly connection: string
 
-    this.queryBuilder = this.query()
+  constructor(connection: string, configs: any = {}) {
+    this.configs = configs
+    this.connection = connection
   }
 
   query(): Knex.QueryBuilder {
@@ -63,6 +65,12 @@ export class PostgreSqlDriver implements DriverContract {
 
   on(event: string, callback: (...params: any) => void) {
     this.queryBuilder.on(event, callback)
+  }
+
+  async connect(): Promise<void> {
+    this.knexClient = await DriverResolver.knex('pg', this.connection, this.configs)
+
+    this.queryBuilder = this.query()
   }
 
   cloneQuery(): Knex.QueryBuilder {
