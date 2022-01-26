@@ -11,10 +11,7 @@ import '@secjs/env/src/utils/global'
 
 import { Config } from '@secjs/config'
 import { Database } from '../src/Database'
-import { Product } from './stubs/Models/Product'
-import { ProductDetail } from './stubs/Models/ProductDetail'
 import { DatabaseContract } from '../src/Contracts/DatabaseContract'
-import { RelationsResolver } from '../src/Resolvers/RelationsResolver'
 
 describe('\n Database PostgreSQL Class', () => {
   let database: DatabaseContract = null
@@ -170,46 +167,6 @@ describe('\n Database PostgreSQL Class', () => {
 
     expect(iphonesWithDetails.length).toBe(3)
     expect(iphonesWithDetails[0].detail).toBe('64 GB')
-  })
-
-  it('should be able to join on other related tables and map the relations as objects', async () => {
-    const iphones = await database.insertAndGet([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
-
-    database.buildTable('product_details')
-
-    await Promise.all(iphones.map(iphone => database.insert({ detail: '64 GB', productId: iphone.id })))
-    await Promise.all(iphones.map(iphone => database.insert({ detail: '16 GB RAM', productId: iphone.id })))
-    await Promise.all(iphones.map(iphone => database.insert({ detail: 'CPU ARM Arch', productId: iphone.id })))
-
-    const flatData = await database
-      .buildTable('products')
-      .buildSelect(
-        'products.id as id',
-        'products.name as productsTable-name',
-        'product_details.id as productDetailsTable-id',
-        'product_details.detail as productDetailsTable-detail',
-        'product_details.productId as productDetailsTable-productId'
-      )
-      .buildJoin(
-        'product_details',
-        'products.id',
-        '=',
-        'product_details.productId',
-        'innerJoin'
-      )
-      .findMany()
-
-    const iphonesWithDetails = RelationsResolver.oneToMany(flatData, Product, ProductDetail)
-
-    expect(iphonesWithDetails.length).toBe(3)
-    expect(iphonesWithDetails[0].id).toBe(1)
-    expect(iphonesWithDetails[0].name).toBe('iPhone 10')
-    expect(iphonesWithDetails[0].productDetails.length).toBe(3)
-    expect(iphonesWithDetails[0].productDetails[0].productId).toBe(1)
   })
 
   afterEach(async () => {

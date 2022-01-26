@@ -10,7 +10,7 @@
 import { Knex } from 'knex'
 import { paginate } from '@secjs/utils'
 import { PaginatedResponse } from '@secjs/contracts'
-import { DriverResolver } from '../Resolvers/DriverResolver'
+import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
 import { DriverContract } from '../Contracts/DriverContract'
 
 export interface PostgresDriverConfigs {
@@ -84,7 +84,7 @@ export class PostgresDriver implements DriverContract {
   async connect(): Promise<void> {
     if (this.isConnected) return
 
-    this.client = await DriverResolver.knex('pg', this.connection, this.configs)
+    this.client = await ConnectionResolver.knex('pg', this.connection, this.configs)
     this.queryBuilder = this.query()
 
     this.isConnected = true

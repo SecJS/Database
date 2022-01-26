@@ -10,7 +10,7 @@
 import knex, { Knex } from 'knex'
 import { Config } from '@secjs/config'
 
-export class DriverResolver {
+export class ConnectionResolver {
   static async knex(client: string, connection: string, configs: any = {}): Promise<Knex> {
     const databaseConfig = Config.get(`database.connections.${connection}`)
 
