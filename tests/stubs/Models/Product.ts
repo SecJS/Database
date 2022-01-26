@@ -7,12 +7,12 @@
  * file that was distributed with this source code.
  */
 
-export interface TableColumnContract {
+import { ProductDetail } from './ProductDetail'
+import { Entity } from '../../../src/Decorators/Entity'
+
+@Entity({ tableName: 'products' })
+export class Product {
+  id: number
   name: string
-  type: string
-  isUnique?: boolean
-  isPrimary?: boolean
-  isNullable?: boolean
-  autoIncrement?: boolean
-  references?: { column: string, table: string }
+  productDetails: ProductDetail[]
 }

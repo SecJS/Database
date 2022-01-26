@@ -9,16 +9,17 @@
 
 import { Config } from '@secjs/config'
 import { Drivers } from './Drivers/Drivers'
+import { JoinType } from './Contracts/JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
 import { DriverContract } from './Contracts/DriverContract'
 import { DatabaseContract } from './Contracts/DatabaseContract'
-import { TableColumnContract } from './Contracts/TableColumnContract'
 import { InternalServerException, NotImplementedException } from '@secjs/exceptions'
 
 export class Database implements DatabaseContract {
   private configs: any = {}
-  private _tempDriver: DriverContract | null = null
-  private _defaultDriver: DriverContract | null = null
+
+  private _tempDriver: DriverContract
+  private _defaultDriver: DriverContract
 
   static build(
     name: string,
@@ -38,6 +39,28 @@ export class Database implements DatabaseContract {
     if (this._tempDriver) return this._tempDriver
 
     return this._defaultDriver
+
+    // let targetType = 'defaultDriver'
+    // let target = this._defaultDriver
+    //
+    // if (this._tempDriver) {
+    //   targetType = 'tempDriver'
+    //   target = this._tempDriver
+    // }
+    //
+    // const handler = {
+    //   get: (target, property) => {
+    //     const get = target[property]
+    //
+    //     if (targetType === 'tempDriver') {
+    //       this._tempDriver = null
+    //     }
+    //
+    //     return get
+    //   }
+    // }
+    //
+    // return new Proxy(target, handler)
   }
 
   private createDriverInstance(connectionName?: string) {
@@ -61,12 +84,14 @@ export class Database implements DatabaseContract {
   }
 
   constructor() {
+    this._tempDriver = null
     this._defaultDriver = this.createDriverInstance()
   }
 
   resetConfigs(): DatabaseContract {
     this.configs = {}
 
+    this._defaultDriver.close()
     this._defaultDriver = this.createDriverInstance()
 
     return this
@@ -75,6 +100,7 @@ export class Database implements DatabaseContract {
   removeConfig(key: string): DatabaseContract {
     delete this.configs[key]
 
+    this._defaultDriver.close()
     this._defaultDriver = this.createDriverInstance()
 
     return this
@@ -83,18 +109,21 @@ export class Database implements DatabaseContract {
   addConfig(key: string, value: any): DatabaseContract {
     this.configs[key] = value
 
+    this._defaultDriver.close()
     this._defaultDriver = this.createDriverInstance()
 
     return this
   }
 
   changeDefaultConnection(connection: string): DatabaseContract {
+    this._defaultDriver.close()
     this._defaultDriver = this.createDriverInstance(connection)
 
     return this
   }
 
   connection(connection: string): DatabaseContract {
+    this._tempDriver.close()
     this._tempDriver = this.createDriverInstance(connection)
 
     return this
@@ -130,8 +159,8 @@ export class Database implements DatabaseContract {
     await this._driver.dropDatabase(databaseName)
   }
 
-  async createTable(tableName: string, columns: TableColumnContract[]): Promise<void> {
-    await this._driver.createTable(tableName, columns)
+  async createTable(tableName: string, callback: (tableBuilder: any) => void): Promise<void> {
+    await this._driver.createTable(tableName, callback)
   }
 
   async dropTable(tableName: string): Promise<void> {
@@ -139,11 +168,7 @@ export class Database implements DatabaseContract {
   }
 
   async raw(raw: string, queryValues: string[]): Promise<any> {
-    const data = await this._driver.raw(raw, queryValues)
-
-    this._tempDriver = null
-
-    return data
+    return this._driver.raw(raw, queryValues)
   }
 
   async find(): Promise<any> {
@@ -177,8 +202,6 @@ export class Database implements DatabaseContract {
   async truncate(tableName: string): Promise<void> {
     return this._driver.truncate(tableName)
   }
-
-  // truncateAll(): void
 
   async forPage(page: number, limit: number): Promise<any[]> {
     return this._driver.forPage(page, limit)
@@ -262,6 +285,18 @@ export class Database implements DatabaseContract {
     return this
   }
 
+  buildWhereLike(statement: string | Record<string, any>, value?: any): DatabaseContract {
+    this._driver.buildWhereLike(statement, value)
+
+    return this
+  }
+
+  buildWhereILike(statement: string | Record<string, any>, value?: any): DatabaseContract {
+    this._driver.buildWhereILike(statement, value)
+
+    return this
+  }
+
   buildOrWhere(statement: string | Record<string, any>, value?: any): DatabaseContract {
     this._driver.buildOrWhere(statement, value)
 
@@ -328,56 +363,8 @@ export class Database implements DatabaseContract {
     return this
   }
 
-  buildJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildInnerJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildInnerJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildLeftJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildLeftJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildLeftOuterJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildLeftOuterJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildRightJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildRightJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildRightOuterJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildRightOuterJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildOuterJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildOuterJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildFullOuterJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildFullOuterJoin(tableName, column1, operator, column2)
-
-    return this
-  }
-
-  buildCrossJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract {
-    this._driver.buildCrossJoin(tableName, column1, operator, column2)
+  buildJoin(tableName: string, column1: string, operator: string, column2?: string, joinType?: JoinType): DatabaseContract {
+    this._driver.buildJoin(tableName, column1, operator, column2, joinType)
 
     return this
   }
@@ -424,8 +411,8 @@ export class Database implements DatabaseContract {
     return this
   }
 
-  buildOffset(number: number): DatabaseContract {
-    this._driver.buildOffset(number)
+  buildSkip(number: number): DatabaseContract {
+    this._driver.buildSkip(number)
 
     return this
   }

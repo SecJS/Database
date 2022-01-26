@@ -10,13 +10,13 @@
 import { MySqlDriver } from './MySqlDriver'
 import { MongoDriver } from './MongoDriver'
 import { SqLiteDriver } from './SqLiteDriver'
+import { PostgresDriver } from './PostgresDriver'
 import { SqlServerDriver } from './SqlServerDriver'
-import { PostgreSqlDriver } from './PostgreSqlDriver'
 
 export const Drivers = {
   mysql: MySqlDriver,
   mongo: MongoDriver,
   sqlite: SqLiteDriver,
   mssql: SqlServerDriver,
-  postgresql: PostgreSqlDriver,
+  postgresql: PostgresDriver,
 }

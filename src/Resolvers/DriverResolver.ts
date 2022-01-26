@@ -14,17 +14,25 @@ export class DriverResolver {
   static async knex(client: string, connection: string, configs: any = {}): Promise<Knex> {
     const databaseConfig = Config.get(`database.connections.${connection}`)
 
+    const conConfig: any = {}
+
+    if (!configs.url && !databaseConfig.url) {
+      conConfig.host = configs.host || databaseConfig.host
+      conConfig.port = configs.port || databaseConfig.port
+      conConfig.user = configs.username || databaseConfig.username
+      conConfig.password = configs.password || databaseConfig.password
+      conConfig.database = configs.database || databaseConfig.database
+    } else conConfig.uri = configs.url || databaseConfig.url
+
     return knex({
       client,
-      connection: {
-        host: configs.host || databaseConfig.host,
-        port: configs.port || databaseConfig.port,
-        user: configs.username || databaseConfig.username,
-        password: configs.password || databaseConfig.password,
-        database: configs.database || databaseConfig.database,
-      },
+      connection: conConfig,
       migrations: {
         tableName: configs.migrations || databaseConfig.migrations
+      },
+      pool: {
+        min: 2,
+        max: 10
       }
     })
   }

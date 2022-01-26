@@ -7,8 +7,9 @@
  * file that was distributed with this source code.
  */
 
+import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
-import { TableColumnContract } from './TableColumnContract'
+import { Knex } from 'knex'
 
 export interface DatabaseContract {
   resetConfigs(): DatabaseContract
@@ -84,10 +85,10 @@ export interface DatabaseContract {
    * CreateTable method
    *
    * @param tableName The table name to be created
-   * @param columns The columns of the table
+   * @param callback The callback function with tableBuilder inside
    *
    */
-  createTable(tableName: string, columns: TableColumnContract[]): Promise<void>
+  createTable(tableName: string, callback: (tableBuilder: Knex.CreateTableBuilder) => void): Promise<void>
 
   /**
    * DropTable method
@@ -156,6 +157,24 @@ export interface DatabaseContract {
    * @param value The value, should be null when statement is an object
    */
   buildWhere(statement: string | Record<string, any>, value?: any): DatabaseContract
+
+  /**
+   * BuildWhereLike method
+   *
+   *
+   * @param statement Key or an object to make the where
+   * @param value The value, should be null when statement is an object
+   */
+  buildWhereLike(statement: string | Record<string, any>, value?: any): DatabaseContract
+
+  /**
+   * BuildWhereILike method
+   *
+   *
+   * @param statement Key or an object to make the where
+   * @param value The value, should be null when statement is an object
+   */
+  buildWhereILike(statement: string | Record<string, any>, value?: any): DatabaseContract
 
   /**
    * BuildOrWhere method
@@ -256,19 +275,12 @@ export interface DatabaseContract {
    * BuildJoin method
    *
    *
-   * @param raw Raw query to make the join
-   */
-  buildJoin(raw: any): DatabaseContract
-
-  /**
-   * BuildJoin method
-   *
-   *
    * @param tableName Table name or a raw query to make the join
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
+   * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, column2: string): DatabaseContract
+  buildJoin(tableName: string, column1: string, column2: string, joinType?: JoinType): DatabaseContract
 
   /**
    * BuildJoin method
@@ -278,240 +290,9 @@ export interface DatabaseContract {
    * @param column1 Column to make the verification
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
+   * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
-
-  /**
-   * BuildInnerJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildInnerJoin(raw: any): DatabaseContract
-
-  /**
-   * BuildInnerJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildInnerJoin(tableName: string, column1: string, column2: string): DatabaseContract
-
-  /**
-   * BuildInnerJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildInnerJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
-
-  /**
-   * BuildLeftJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildLeftJoin(raw: string): DatabaseContract
-
-  /**
-   * BuildLeftJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildLeftJoin(tableName: string, column1: string, column2: string): DatabaseContract
-
-  /**
-   * BuildLeftJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildLeftJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
-
-  /**
-   * BuildLeftOuterJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildLeftOuterJoin(raw: string): DatabaseContract
-
-  /**
-   * BuildLeftOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildLeftOuterJoin(tableName: string, column1: string, column2: string): DatabaseContract
-
-  /**
-   * BuildLeftOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildLeftOuterJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
-
-  /**
-   * BuildRightJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildRightJoin(raw: string): DatabaseContract
-
-  /**
-   * BuildRightJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildRightJoin(tableName: string, column1: string, column2: string): DatabaseContract
-
-  /**
-   * BuildRightJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildRightJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
-
-  /**
-   * BuildRightOuterJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildRightOuterJoin(raw: string): DatabaseContract
-
-  /**
-   * BuildRightOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildRightOuterJoin(tableName: string, column1: string, column2: string): DatabaseContract
-
-  /**
-   * BuildRightOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildRightOuterJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
-
-  /**
-   * BuildOuterJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildOuterJoin(raw: string): DatabaseContract
-
-  /**
-   * BuildOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildOuterJoin(tableName: string, column1: string, column2: string): DatabaseContract
-
-  /**
-   * BuildOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildOuterJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
-
-  /**
-   * BuildFullOuterJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildFullOuterJoin(raw: string): DatabaseContract
-
-  /**
-   * BuildFullOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildFullOuterJoin(tableName: string, column1: string, column2: string): DatabaseContract
-
-  /**
-   * BuildFullOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildFullOuterJoin(tableName: string, column1: string, operator: string, column2: string): DatabaseContract
-
-  /**
-   * BuildCrossJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildCrossJoin(raw: string): DatabaseContract
-
-  /**
-   * BuildCrossJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildCrossJoin(tableName: string, column1: string, column2: string): DatabaseContract
-
-  /**
-   * BuildCrossJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildCrossJoin(tableName: string, column1?: string, operator?: string, column2?: string): DatabaseContract
+  buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): DatabaseContract
 
   /**
    * BuildJoinRaw method
@@ -578,12 +359,12 @@ export interface DatabaseContract {
   buildHaving(column: string, operator: string, value: any): DatabaseContract
 
   /**
-   * BuildOffset method
+   * BuildSkip method
    *
    * @param number The offset number
    *
    */
-  buildOffset(number: number): DatabaseContract
+  buildSkip(number: number): DatabaseContract
 
   /**
    * BuildLimit method
@@ -656,14 +437,6 @@ export interface DatabaseContract {
    *
    */
   truncate(tableName: string): Promise<void>
-
-  // /**
-  //  * TruncateAll method
-  //  *
-  //  * Removes all tables rows, resetting the tables' auto increment id to 0.
-  //  *
-  //  */
-  // truncateAll(): void
 
   /**
    * ForPage method

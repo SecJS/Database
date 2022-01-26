@@ -7,8 +7,9 @@
  * file that was distributed with this source code.
  */
 
+import { Knex } from 'knex'
+import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
-import { TableColumnContract } from './TableColumnContract'
 
 export interface DriverContract {
   /**
@@ -76,10 +77,10 @@ export interface DriverContract {
    * CreateTable method
    *
    * @param tableName The table name to be created
-   * @param columns The columns of the table
+   * @param callback The callback function with tableBuilder inside
    *
    */
-  createTable(tableName: string, columns: TableColumnContract[]): Promise<void>
+  createTable(tableName: string, callback: (tableBuilder: Knex.CreateTableBuilder) => void): Promise<void>
 
   /**
    * DropTable method
@@ -148,6 +149,24 @@ export interface DriverContract {
    * @param value The value, should be null when statement is an object
    */
   buildWhere(statement: string | Record<string, any>, value?: any): DriverContract
+
+  /**
+   * BuildWhereLike method
+   *
+   *
+   * @param statement Key or an object to make the where
+   * @param value The value, should be null when statement is an object
+   */
+  buildWhereLike(statement: string | Record<string, any>, value?: any): DriverContract
+
+  /**
+   * BuildWhereILike method
+   *
+   *
+   * @param statement Key or an object to make the where
+   * @param value The value, should be null when statement is an object
+   */
+  buildWhereILike(statement: string | Record<string, any>, value?: any): DriverContract
 
   /**
    * BuildOrWhere method
@@ -248,19 +267,12 @@ export interface DriverContract {
    * BuildJoin method
    *
    *
-   * @param raw Raw query to make the join
-   */
-  buildJoin(raw: any): DriverContract
-
-  /**
-   * BuildJoin method
-   *
-   *
    * @param tableName Table name or a raw query to make the join
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
+   * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, column2: string): DriverContract
+  buildJoin(tableName: string, column1: string, column2: string, joinType?: JoinType): DriverContract
 
   /**
    * BuildJoin method
@@ -270,240 +282,9 @@ export interface DriverContract {
    * @param column1 Column to make the verification
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
+   * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
-
-  /**
-   * BuildInnerJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildInnerJoin(raw: any): DriverContract
-
-  /**
-   * BuildInnerJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildInnerJoin(tableName: string, column1: string, column2: string): DriverContract
-
-  /**
-   * BuildInnerJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildInnerJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
-
-  /**
-   * BuildLeftJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildLeftJoin(raw: string): DriverContract
-
-  /**
-   * BuildLeftJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildLeftJoin(tableName: string, column1: string, column2: string): DriverContract
-
-  /**
-   * BuildLeftJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildLeftJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
-
-  /**
-   * BuildLeftOuterJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildLeftOuterJoin(raw: string): DriverContract
-
-  /**
-   * BuildLeftOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildLeftOuterJoin(tableName: string, column1: string, column2: string): DriverContract
-
-  /**
-   * BuildLeftOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildLeftOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
-
-  /**
-   * BuildRightJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildRightJoin(raw: string): DriverContract
-
-  /**
-   * BuildRightJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildRightJoin(tableName: string, column1: string, column2: string): DriverContract
-
-  /**
-   * BuildRightJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildRightJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
-
-  /**
-   * BuildRightOuterJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildRightOuterJoin(raw: string): DriverContract
-
-  /**
-   * BuildRightOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildRightOuterJoin(tableName: string, column1: string, column2: string): DriverContract
-
-  /**
-   * BuildRightOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildRightOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
-
-  /**
-   * BuildOuterJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildOuterJoin(raw: string): DriverContract
-
-  /**
-   * BuildOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildOuterJoin(tableName: string, column1: string, column2: string): DriverContract
-
-  /**
-   * BuildOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
-
-  /**
-   * BuildFullOuterJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildFullOuterJoin(raw: string): DriverContract
-
-  /**
-   * BuildFullOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildFullOuterJoin(tableName: string, column1: string, column2: string): DriverContract
-
-  /**
-   * BuildFullOuterJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildFullOuterJoin(tableName: string, column1: string, operator: string, column2: string): DriverContract
-
-  /**
-   * BuildCrossJoin method
-   *
-   *
-   * @param raw Raw query to make the join
-   */
-  buildCrossJoin(raw: string): DriverContract
-
-  /**
-   * BuildCrossJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param column2 Second column of the verification
-   */
-  buildCrossJoin(tableName: string, column1: string, column2: string): DriverContract
-
-  /**
-   * BuildCrossJoin method
-   *
-   *
-   * @param tableName Table name or a raw query to make the join
-   * @param column1 Column to make the verification
-   * @param operator Operation to make in verification such and >=, <, = etc
-   * @param column2 Second column of the verification
-   */
-  buildCrossJoin(tableName: string, column1?: string, operator?: string, column2?: string): DriverContract
+  buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): DriverContract
 
   /**
    * BuildJoinRaw method
@@ -570,12 +351,12 @@ export interface DriverContract {
   buildHaving(column: string, operator: string, value: any): DriverContract
 
   /**
-   * BuildOffset method
+   * BuildSkip method
    *
    * @param number The offset number
    *
    */
-  buildOffset(number: number): DriverContract
+  buildSkip(number: number): DriverContract
 
   /**
    * BuildLimit method
@@ -648,14 +429,6 @@ export interface DriverContract {
    *
    */
   truncate(tableName: string): Promise<void>
-
-  // /**
-  //  * TruncateAll method
-  //  *
-  //  * Removes all tables rows, resetting the tables' auto increment id to 0.
-  //  *
-  //  */
-  // truncateAll(): void
 
   /**
    * ForPage method
