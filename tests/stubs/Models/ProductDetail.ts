@@ -8,9 +8,9 @@
  */
 
 import { Product } from './Product'
-import { Entity } from '../../../src/Decorators/Entity'
+import { Model } from '../../../src/Decorators/Model'
 
-@Entity({ tableName: 'productDetails' })
+@Model({ tableName: 'productDetails' })
 export class ProductDetail {
   id: number
   detail: string

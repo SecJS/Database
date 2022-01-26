@@ -7,7 +7,7 @@
  * file that was distributed with this source code.
  */
 
-export function Entity(options: any = {}): ClassDecorator {
+export function Model(options: any = {}): ClassDecorator {
   return target => {
     target.prototype.tableName = `${options.tableName}Table`
 
