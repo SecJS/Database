@@ -19,6 +19,8 @@
     "seeders",
     "migrations",
     "nodejs",
+    "knex",
+    "mongoose",
     "query-builder"
   ],
   "devDependencies": {
