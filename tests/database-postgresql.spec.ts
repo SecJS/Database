@@ -12,6 +12,7 @@ import '@secjs/env/src/utils/global'
 import { Config } from '@secjs/config'
 import { Database } from '../src/Database'
 import { DatabaseContract } from '../src/Contracts/DatabaseContract'
+import { Knex } from 'knex'
 
 describe('\n Database PostgreSQL Class', () => {
   let database: DatabaseContract = null
@@ -185,8 +186,58 @@ describe('\n Database PostgreSQL Class', () => {
     expect(macbooks[0].name).toBe('Macbook 2019')
   })
 
-  // TODO Test clone query
-  // TODO Test transaction
+  it('should be able to clone the database with the exactly query chain', async () => {
+    database.buildTable('products')
+
+    const clonedDatabase = await database.clone()
+
+    // This should insert in products table because of database.buildTable
+    const arrayOfIds = await clonedDatabase.insert({ name: 'AirPods 2' })
+
+    expect(arrayOfIds.length).toBe(1)
+  })
+
+  it('should be able to clone the query builder with the exactly query chain', async () => {
+    database.buildTable('products')
+
+    const clonedQuery = database.cloneQuery<Knex.QueryBuilder>()
+
+    // This should insert in products table because of database.buildTable
+    const arrayOfIds = await clonedQuery.insert({ name: 'AirPods 2' }, 'id')
+
+    expect(arrayOfIds.length).toBe(1)
+  })
+
+  it('should be able to create database transactions and commit then', async () => {
+    const trx = await database.beginTransaction()
+
+    trx.buildTable('products')
+    const products = await trx.insertAndGet({ name: 'AirPods 3' })
+
+    expect(products.length).toBe(1)
+
+    await trx.commit()
+
+    const product = await database.buildWhere('id', products[0].id).find()
+
+    expect(product.id).toBe(products[0].id)
+  })
+
+  it('should be able to create database transactions and rollback then', async () => {
+    const trx = await database.beginTransaction()
+
+    trx.buildTable('products')
+    const products = await trx.insertAndGet({ name: 'AirPods 3' })
+
+    expect(products.length).toBe(1)
+
+    await trx.rollback()
+
+    const product = await database.buildWhere('id', products[0].id).find()
+
+    expect(product).toBeFalsy()
+  })
+
   // TODO Test pluck
   // TODO Test raw
   // TODO Test on

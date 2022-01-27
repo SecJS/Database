@@ -10,8 +10,11 @@
 import { Knex } from 'knex'
 import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
+import { TransactionContract } from './TransactionContract'
 
 export interface DriverContract {
+  setQueryBuilder(query: any): void
+
   /**
    * Connect method
    *
@@ -45,7 +48,7 @@ export interface DriverContract {
    * @return The transaction started to make the queries
    *
    */
-  beginTransaction(): Promise<any>
+  beginTransaction(): Promise<TransactionContract>
 
   /**
    * Transaction method

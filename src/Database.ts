@@ -14,9 +14,11 @@ import { PaginatedResponse } from '@secjs/contracts'
 import { DriverContract } from './Contracts/DriverContract'
 import { DatabaseContract } from './Contracts/DatabaseContract'
 import { InternalServerException, NotImplementedException } from '@secjs/exceptions'
+import { TransactionContract } from './Contracts/TransactionContract'
 
 export class Database implements DatabaseContract {
   private configs: any = {}
+  private connectionName: string
   private driver: DriverContract
 
   static build(
@@ -49,6 +51,8 @@ export class Database implements DatabaseContract {
         `Driver ${connectionConfig.driver} does not exist, use Database.build method to create a new driver`,
       )
     }
+
+    this.connectionName = connectionName
 
     return new Drivers[connectionConfig.driver](connectionName, this.configs)
   }
@@ -91,6 +95,10 @@ export class Database implements DatabaseContract {
     return this
   }
 
+  setQueryBuilder(query: any): void {
+    this.driver.setQueryBuilder(query)
+  }
+
   // DriverContract Methods
 
   async connect(): Promise<DatabaseContract> {
@@ -107,7 +115,15 @@ export class Database implements DatabaseContract {
     return this.driver.cloneQuery()
   }
 
-  async beginTransaction<T = any>(): Promise<T> {
+  async clone(): Promise<DatabaseContract> {
+    const database: any = await new Database().connection(this.connectionName).connect()
+
+    database.setQueryBuilder(this.cloneQuery())
+
+    return database
+  }
+
+  async beginTransaction(): Promise<TransactionContract> {
     return this.driver.beginTransaction()
   }
 

@@ -9,41 +9,17 @@
 
 import { Knex } from 'knex'
 import { paginate } from '@secjs/utils'
-import { Transaction } from '../Transaction'
 import { PaginatedResponse } from '@secjs/contracts'
-import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
-import { DriverContract } from '../Contracts/DriverContract'
-import { TransactionContract } from '../Contracts/TransactionContract'
+import { TransactionContract } from './Contracts/TransactionContract'
 
-export interface SqliteDriverConfig {
-  filename?: string
-  migrations?: string
-}
-
-export class SqliteDriver implements DriverContract {
-  private isConnected: boolean
-  private defaultTable: string
-
-  private client: Knex
+export class Transaction implements TransactionContract {
+  private trx: Knex.Transaction
   private queryBuilder: Knex.QueryBuilder
 
-  private readonly configs: any
-  private readonly connection: string
+  private defaultTable: string
 
-  constructor(connection: string, configs: SqliteDriverConfig = {}) {
-    this.isConnected = false
-    this.defaultTable = null
-
-    this.configs = configs
-    this.connection = connection
-  }
-
-  setQueryBuilder(query: Knex.QueryBuilder) {
-    this.queryBuilder = query
-  }
-
-  query(): Knex.QueryBuilder {
-    const query = this.client.queryBuilder()
+  private query() {
+    const query = this.trx.queryBuilder()
 
     if (this.defaultTable) query.table(this.defaultTable)
 
@@ -67,7 +43,7 @@ export class SqliteDriver implements DriverContract {
           'decrement'
         ]
 
-        if (protectedMethods.includes(propertyKey) || !propertyKey) {
+        if (protectedMethods.includes(propertyKey)) {
           this.queryBuilder = this.query()
         }
 
@@ -78,50 +54,30 @@ export class SqliteDriver implements DriverContract {
     return new Proxy<Knex.QueryBuilder>(query, handler)
   }
 
-  on(event: string, callback: (...params: any) => void) {
-    this.queryBuilder.on(event, callback)
-  }
-
-  async connect(): Promise<void> {
-    if (this.isConnected) return
-
-    this.client = await ConnectionResolver.knex('better-sqlite3', this.connection, this.configs)
+  constructor(trx: Knex.Transaction) {
+    this.trx = trx
     this.queryBuilder = this.query()
-
-    this.isConnected = true
   }
 
-  cloneQuery(): Knex.QueryBuilder {
-    return this.queryBuilder.clone()
+  async commit(value?: any): Promise<any> {
+    const committedTrx = await this.trx.commit(value)
+
+    this.trx = null
+    this.queryBuilder = null
+
+    return committedTrx
   }
 
-  async beginTransaction(): Promise<TransactionContract> {
-    return new Transaction(await this.client.transaction())
+  async rollback(error?: any): Promise<any> {
+    const rolledBackTrx = await this.trx.rollback(error)
+
+    this.trx = null
+    this.queryBuilder = null
+
+    return rolledBackTrx
   }
 
-  async transaction(callback: (trx: Knex.Transaction) => Promise<void>): Promise<void> {
-    await this.client.transaction(callback)
-  }
-
-  async createDatabase(databaseName: string): Promise<void> {
-    await this.client.raw('CREATE DATABASE ??', databaseName)
-  }
-
-  async dropDatabase(databaseName: string): Promise<void> {
-    // TODO see how to drop sqlite databases, if is not possible to implement the method,
-    //  throw an error saying that this method is not supported for SqliteDrive
-    await this.client.raw('DROP DATABASE IF EXISTS ??', databaseName)
-  }
-
-  async createTable(tableName: string, callback: (tableBuilder: any) => void): Promise<void> {
-    const existsTable = await this.client.schema.hasTable(tableName)
-
-    if (!existsTable) await this.client.schema.createTable(tableName, callback)
-  }
-
-  async dropTable(tableName: string): Promise<void> {
-    await this.client.schema.dropTableIfExists(tableName)
-  }
+  // DriverContract Methods
 
   async avg(column: string): Promise<number> {
     return this.queryBuilder.avg(column)
@@ -131,19 +87,8 @@ export class SqliteDriver implements DriverContract {
     return this.queryBuilder.avgDistinct(column)
   }
 
-  async close(connections?: string[]): Promise<void> {
-    if (!this.isConnected) return
-
-    await this.client.destroy()
-
-    this.client = null
-    this.isConnected = false
-    this.queryBuilder = null
-    this.defaultTable = null
-  }
-
   async columnInfo(column: string): Promise<any> {
-    return this.client.withSchema(column).columnInfo()
+    return this.trx.withSchema(column).columnInfo()
   }
 
   async count(column = '*'): Promise<number> {
@@ -171,7 +116,11 @@ export class SqliteDriver implements DriverContract {
   }
 
   async findMany(): Promise<any[]> {
-    return this.queryBuilder
+    const data = await this.queryBuilder
+
+    this.queryBuilder = this.query()
+
+    return data
   }
 
   async forPage(page: number, limit: number): Promise<any[]> {
@@ -214,7 +163,7 @@ export class SqliteDriver implements DriverContract {
   }
 
   async raw(...args): Promise<any> {
-    return this.client.raw(args)
+    return this.trx.raw(args)
   }
 
   async sum(column: string): Promise<number> {
@@ -226,7 +175,7 @@ export class SqliteDriver implements DriverContract {
   }
 
   async truncate(tableName: string): Promise<void> {
-    await this.client.table(tableName).truncate()
+    await this.trx.table(tableName).truncate()
   }
 
   async update(key: any, value?: any): Promise<string[]> {
@@ -248,28 +197,28 @@ export class SqliteDriver implements DriverContract {
   }
 
   async increment(column: string, value: number) {
-    return this.client.increment(column, value)
+    return this.trx.increment(column, value)
   }
 
-  buildDistinct(...columns: string[]): DriverContract {
+  buildDistinct(...columns: string[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.distinct(...columns)
 
     return this
   }
 
-  buildGroupBy(...columns: string[]): DriverContract {
+  buildGroupBy(...columns: string[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.groupBy(...columns)
 
     return this
   }
 
-  buildGroupByRaw(raw: string, queryValues: string[]): DriverContract {
+  buildGroupByRaw(raw: string, queryValues: string[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
 
     return this
   }
 
-  buildHaving(column: string, operator: string, value: any): DriverContract {
+  buildHaving(column: string, operator: string, value: any): TransactionContract {
     this.queryBuilder = this.queryBuilder.having(column, operator, value)
 
     return this
@@ -281,32 +230,32 @@ export class SqliteDriver implements DriverContract {
     operator: string,
     column2?: string,
     joinType = 'join',
-  ): DriverContract {
+  ): TransactionContract {
     if (operator && !column2) this.queryBuilder = this.queryBuilder[joinType](tableName, column1, operator)
     if (tableName && column2) this.queryBuilder = this.queryBuilder[joinType](tableName, column1, operator, column2)
 
     return this
   }
 
-  buildJoinRaw(raw: string, queryValues: string[]): DriverContract {
+  buildJoinRaw(raw: string, queryValues: string[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
 
     return this
   }
 
-  buildLimit(number: number): DriverContract {
+  buildLimit(number: number): TransactionContract {
     this.queryBuilder = this.queryBuilder.limit(number)
 
     return this
   }
 
-  buildSkip(number: number): DriverContract {
+  buildSkip(number: number): TransactionContract {
     this.queryBuilder = this.queryBuilder.offset(number)
 
     return this
   }
 
-  buildOrWhere(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildOrWhere(statement: string | Record<string, any>, value?: any): TransactionContract {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.where(statement)
 
@@ -318,25 +267,25 @@ export class SqliteDriver implements DriverContract {
     return this
   }
 
-  buildOrderBy(column: string, direction?: "asc" | "desc"): DriverContract {
+  buildOrderBy(column: string, direction?: "asc" | "desc"): TransactionContract {
     this.queryBuilder = this.queryBuilder.orderBy(column, direction)
 
     return this
   }
 
-  buildOrderByRaw(raw: string, queryValues: string[]): DriverContract {
+  buildOrderByRaw(raw: string, queryValues: string[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
 
     return this
   }
 
-  buildSelect(...columns: string[]): DriverContract {
+  buildSelect(...columns: string[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.select(...columns)
 
     return this
   }
 
-  buildTable(tableName: string): DriverContract {
+  buildTable(tableName: string): TransactionContract {
     this.queryBuilder = this.queryBuilder.table(tableName)
 
     this.defaultTable = tableName
@@ -344,7 +293,7 @@ export class SqliteDriver implements DriverContract {
     return this
   }
 
-  buildWhere(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildWhere(statement: string | Record<string, any>, value?: any): TransactionContract {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.where(statement)
 
@@ -356,7 +305,7 @@ export class SqliteDriver implements DriverContract {
     return this
   }
 
-  buildWhereLike(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildWhereLike(statement: string | Record<string, any>, value?: any): TransactionContract {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.whereLike(statement)
 
@@ -368,7 +317,7 @@ export class SqliteDriver implements DriverContract {
     return this
   }
 
-  buildWhereILike(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildWhereILike(statement: string | Record<string, any>, value?: any): TransactionContract {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.whereIlike(statement)
 
@@ -380,25 +329,25 @@ export class SqliteDriver implements DriverContract {
     return this
   }
 
-  buildWhereBetween(columnName: string, values: [any, any]): DriverContract {
+  buildWhereBetween(columnName: string, values: [any, any]): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereBetween(columnName, values)
 
     return this
   }
 
-  buildWhereExists(callback: any): DriverContract {
+  buildWhereExists(callback: any): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereExists(callback)
 
     return this
   }
 
-  buildWhereIn(columnName: string, values: any[]): DriverContract {
+  buildWhereIn(columnName: string, values: any[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereIn(columnName, values)
 
     return this
   }
 
-  buildWhereNot(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildWhereNot(statement: string | Record<string, any>, value?: any): TransactionContract {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.whereNot(statement)
 
@@ -410,37 +359,37 @@ export class SqliteDriver implements DriverContract {
     return this
   }
 
-  buildWhereNotBetween(columnName: string, values: [any, any]): DriverContract {
+  buildWhereNotBetween(columnName: string, values: [any, any]): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereNotBetween(columnName, values)
 
     return this
   }
 
-  buildWhereNotExists(callback: any): DriverContract {
+  buildWhereNotExists(callback: any): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereNotExists(callback)
 
     return this
   }
 
-  buildWhereNotIn(columnName: string, values: any[]): DriverContract {
+  buildWhereNotIn(columnName: string, values: any[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereNotIn(columnName, values)
 
     return this
   }
 
-  buildWhereNull(columnName: string): DriverContract {
+  buildWhereNull(columnName: string): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereNull(columnName)
 
     return this
   }
 
-  buildWhereNotNull(columnName: string): DriverContract {
+  buildWhereNotNull(columnName: string): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereNotNull(columnName)
 
     return this
   }
 
-  buildWhereRaw(raw: string, queryValues: string[]): DriverContract {
+  buildWhereRaw(raw: string, queryValues: string[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereRaw(raw, queryValues)
 
     return this

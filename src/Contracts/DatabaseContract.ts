@@ -10,6 +10,7 @@
 import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
 import { Knex } from 'knex'
+import { TransactionContract } from './TransactionContract'
 
 export interface DatabaseContract {
   /**
@@ -59,6 +60,16 @@ export interface DatabaseContract {
   on(event: string, callback: (...params: any) => void): void
 
   /**
+   * Clone method
+   *
+   * Clone the current database chain for later usage
+   *
+   * @return Return the actual database chain
+   *
+   */
+  clone(): Promise<DatabaseContract>
+
+  /**
    * CloneQuery method
    *
    * Clone the current query chain for later usage
@@ -66,7 +77,7 @@ export interface DatabaseContract {
    * @return Return the actual query chain
    *
    */
-  cloneQuery(): any
+  cloneQuery<T = any>(): T
 
   /**
    * BeginTransaction method
@@ -74,7 +85,7 @@ export interface DatabaseContract {
    * @return The transaction started to make the queries
    *
    */
-  beginTransaction(): Promise<any>
+  beginTransaction(): Promise<TransactionContract>
 
   /**
    * Transaction method

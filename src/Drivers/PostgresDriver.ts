@@ -9,6 +9,7 @@
 
 import { Knex } from 'knex'
 import { paginate } from '@secjs/utils'
+import { Transaction } from '../Transaction'
 import { PaginatedResponse } from '@secjs/contracts'
 import { DriverContract } from '../Contracts/DriverContract'
 import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
@@ -41,8 +42,12 @@ export class PostgresDriver implements DriverContract {
     this.connection = connection
   }
 
-  query(): Knex.QueryBuilder {
-    const query = this.client.queryBuilder()
+  setQueryBuilder(query: Knex.QueryBuilder) {
+    this.queryBuilder = query
+  }
+
+  query(q?: Knex.QueryBuilder): Knex.QueryBuilder {
+    const query = q || this.client.queryBuilder()
 
     if (this.defaultTable) query.table(this.defaultTable)
 
@@ -94,8 +99,8 @@ export class PostgresDriver implements DriverContract {
     return this.queryBuilder.clone()
   }
 
-  async beginTransaction(): Promise<Knex.Transaction> {
-    return this.client.transaction()
+  async beginTransaction(): Promise<any> {
+    return new Transaction(await this.client.transaction())
   }
 
   async transaction(callback: (trx: Knex.Transaction) => Promise<void>): Promise<void> {
