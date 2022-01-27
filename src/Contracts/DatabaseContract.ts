@@ -7,38 +7,23 @@
  * file that was distributed with this source code.
  */
 
+import { Knex } from 'knex'
 import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
-import { Knex } from 'knex'
 import { TransactionContract } from './TransactionContract'
 
 export interface DatabaseContract {
-  /**
-   * Reset all runtime configuration from driver
-   */
-  resetConfigs(): DatabaseContract
+  // DatabaseContract Methods
 
   /**
-   * Remove runtime configuration from driver
+   * Connection method
    *
-   * @param key
-   */
-  removeConfig(key: string): DatabaseContract
-
-  /**
-   * Add runtime configuration to driver
+   * Change the connection from Database
    *
-   * @param key
-   * @param value
+   * @param connection The connection name
+   * @param runtimeConfig Runtime configuration
    */
-  addConfig(key: string, value: any): DatabaseContract
-
-  /**
-   * Change the database connection
-   *
-   * @param connection
-   */
-  connection(connection: string): DatabaseContract
+  connection(connection: string, runtimeConfig?: any): DatabaseContract
 
   // DriverContract Methods
 
@@ -140,22 +125,6 @@ export interface DatabaseContract {
   raw(raw: string, queryValues?: any[]): Promise<any>
 
   /**
-   * BuildTable method
-   *
-   * @param tableName Table selected to run the query.
-   *
-   */
-  buildTable(tableName: string): DatabaseContract
-
-  /**
-   * BuildSelect method
-   *
-   * @param columns All the columns that will be selected, use * to get all.
-   *
-   */
-  buildSelect(...columns: string[]): DatabaseContract
-
-  /**
    * Find method
    *
    * Use to get only one value or the first match
@@ -172,6 +141,233 @@ export interface DatabaseContract {
    * @return Run the query and return an array.
    */
   findMany(): Promise<any[]>
+
+  /**
+   * Insert method
+   *
+   * In case of bulk inserts only the last inserted id will be returned.
+   *
+   * @param values The values that are going to be inserted.
+   * @return The newly created id or ids inside array.
+   *
+   */
+  insert(values: any | any[]): Promise<string[]>
+
+  /**
+   * InsertAndGet method
+   *
+   * Same as insert but return an array with the values inserted
+   *
+   * @param values The values that are going to be inserted.
+   * @return The array with the values inserted.
+   *
+   */
+  insertAndGet(values: any | any[]): Promise<any[]>
+
+  /**
+   * Update method
+   *
+   * For multiple columns, pass those columns/values as an object.
+   *
+   * @param key The key to be updated.
+   * @param value The value of the key.
+   * @return The number of affected rows.
+   *
+   */
+  update(key: any | string, value?: any): Promise<string[]>
+
+  /**
+   * UpdateAndGet method
+   *
+   * Same as update but return the payload updated.
+   *
+   * @param key The key to be updated.
+   * @param value The value of the key.
+   * @return The payload updated.
+   *
+   */
+  updateAndGet(key: any | string, value?: any): Promise<any[]>
+
+  /**
+   * delete method
+   *
+   * @return The number of affected rows.
+   *
+   */
+  delete(): Promise<number>
+
+  /**
+   * Truncate method
+   *
+   * Removes all table rows, resetting the table auto increment id to 0.
+   *
+   * @param tableName The table to be truncated
+   *
+   */
+  truncate(tableName: string): Promise<void>
+
+  /**
+   * ForPage method
+   *
+   * Pagination without PaginatedResponse
+   *
+   * @param page The page
+   * @param limit The limit = 20
+   *
+   */
+  forPage(page: number, limit: number): Promise<any[]>
+
+  /**
+   * Paginate method
+   *
+   * Pagination
+   *
+   * @param page The page
+   * @param limit The limit = 20
+   * @param resourceUrl The resourceUrl from the request to make the links
+   *
+   */
+  paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>>
+
+  /**
+   * Count method
+   *
+   * @param column The column name = '*'
+   * @return total The total
+   *
+   */
+  count(column?: string): Promise<number>
+
+  /**
+   * CountDistinct method
+   *
+   * @param column The column name distinct
+   * @return total The total
+   *
+   */
+  countDistinct(column: string): Promise<number>
+
+  /**
+   * Min method
+   *
+   * @param column The column name to make the min
+   * @return total The total
+   *
+   */
+  min(column: string): Promise<number>
+
+  /**
+   * Max method
+   *
+   * @param column The column name to make the max
+   * @return total The total
+   *
+   */
+  max(column: string): Promise<number>
+
+  /**
+   * Sum method
+   *
+   * @param column The column name to make the sum
+   * @return total The total
+   *
+   */
+  sum(column: string): Promise<number>
+
+  /**
+   * SumDistinct method
+   *
+   * @param column The column name to make the sumDistinct
+   * @return total The total
+   *
+   */
+  sumDistinct(column: string): Promise<number>
+
+  /**
+   * Avg method
+   *
+   * @param column The column name to make the avg
+   * @return total The total
+   *
+   */
+  avg(column: string): Promise<number>
+
+  /**
+   * AvgDistinct method
+   *
+   * @param column The column name to make the avgDistinct
+   * @return total The total
+   *
+   */
+  avgDistinct(column: string): Promise<number>
+
+  /**
+   * Increment method
+   *
+   * Increase the column value by one
+   *
+   * @param column The column name to make the increment
+   * @param value The value
+   *
+   */
+  increment(column: string, value: number)
+
+  /**
+   * Decrement method
+   *
+   * Decrease the column value by one
+   *
+   * @param column The column name to make the decrement
+   * @param value The value
+   *
+   */
+  decrement(column: string, value: number)
+
+  /**
+   * Pluck method
+   *
+   * Return an array of values for the selected column, example: usersId [1, 2, 3...]
+   *
+   * @param column The column name to make the pluck
+   * @return array Only the values of the selected column in the array
+   *
+   */
+  pluck(column: string): Promise<any[]>
+
+  /**
+   * ColumnInfo method
+   *
+   * @param column Column to retrieve info
+   * @return Return information for a given column
+   *
+   */
+  columnInfo(column: string): Promise<any>
+
+  /**
+   * Close method
+   *
+   * Close the database connection
+   *
+   * @param connections If nothing is passed, will close all the connections.
+   *
+   */
+  close(connections?: string[]): Promise<void>
+
+  /**
+   * BuildTable method
+   *
+   * @param tableName Table selected to run the query.
+   *
+   */
+  buildTable(tableName: string): DatabaseContract
+
+  /**
+   * BuildSelect method
+   *
+   * @param columns All the columns that will be selected, use * to get all.
+   *
+   */
+  buildSelect(...columns: string[]): DatabaseContract
 
   /**
    * BuildWhere method
@@ -397,215 +593,4 @@ export interface DatabaseContract {
    *
    */
   buildLimit(number: number): DatabaseContract
-
-  /**
-   * Insert method
-   *
-   * In case of bulk inserts only the last inserted id will be returned.
-   *
-   * @param values The values that are going to be inserted.
-   * @return The newly created id or ids inside array.
-   *
-   */
-  insert(values: any | any[]): Promise<string[]>
-
-  /**
-   * InsertAndGet method
-   *
-   * Same as insert but return an array with the values inserted
-   *
-   * @param values The values that are going to be inserted.
-   * @return The array with the values inserted.
-   *
-   */
-  insertAndGet(values: any | any[]): Promise<any[]>
-
-  /**
-   * Update method
-   *
-   * For multiple columns, pass those columns/values as an object.
-   *
-   * @param key The key to be updated.
-   * @param value The value of the key.
-   * @return The number of affected rows.
-   *
-   */
-  update(key: any | string, value?: any): Promise<string[]>
-
-  /**
-   * UpdateAndGet method
-   *
-   * Same as update but return the payload updated.
-   *
-   * @param key The key to be updated.
-   * @param value The value of the key.
-   * @return The payload updated.
-   *
-   */
-  updateAndGet(key: any | string, value?: any): Promise<any[]>
-
-  /**
-   * delete method
-   *
-   * @return The number of affected rows.
-   *
-   */
-  delete(): Promise<number>
-
-  /**
-   * Truncate method
-   *
-   * Removes all table rows, resetting the table auto increment id to 0.
-   *
-   * @param tableName The table to be truncated
-   *
-   */
-  truncate(tableName: string): Promise<void>
-
-  /**
-   * ForPage method
-   *
-   * Pagination without PaginatedResponse
-   *
-   * @param page The page
-   * @param limit The limit = 20
-   *
-   */
-  forPage(page: number, limit: number): Promise<any[]>
-
-  /**
-   * Paginate method
-   *
-   * Pagination
-   *
-   * @param page The page
-   * @param limit The limit = 20
-   * @param resourceUrl The resourceUrl from the request to make the links
-   *
-   */
-  paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>>
-
-  /**
-   * Count method
-   *
-   * @param column The column name = '*'
-   * @return total The total
-   *
-   */
-  count(column?: string): Promise<number>
-
-  /**
-   * CountDistinct method
-   *
-   * @param column The column name distinct
-   * @return total The total
-   *
-   */
-  countDistinct(column: string): Promise<number>
-
-  /**
-   * Min method
-   *
-   * @param column The column name to make the min
-   * @return total The total
-   *
-   */
-  min(column: string): Promise<number>
-
-  /**
-   * Max method
-   *
-   * @param column The column name to make the max
-   * @return total The total
-   *
-   */
-  max(column: string): Promise<number>
-
-  /**
-   * Sum method
-   *
-   * @param column The column name to make the sum
-   * @return total The total
-   *
-   */
-  sum(column: string): Promise<number>
-
-  /**
-   * SumDistinct method
-   *
-   * @param column The column name to make the sumDistinct
-   * @return total The total
-   *
-   */
-  sumDistinct(column: string): Promise<number>
-
-  /**
-   * Avg method
-   *
-   * @param column The column name to make the avg
-   * @return total The total
-   *
-   */
-  avg(column: string): Promise<number>
-
-  /**
-   * AvgDistinct method
-   *
-   * @param column The column name to make the avgDistinct
-   * @return total The total
-   *
-   */
-  avgDistinct(column: string): Promise<number>
-
-  /**
-   * Increment method
-   *
-   * Increase the column value by one
-   *
-   * @param column The column name to make the increment
-   * @param value The value
-   *
-   */
-  increment(column: string, value: number)
-
-  /**
-   * Decrement method
-   *
-   * Decrease the column value by one
-   *
-   * @param column The column name to make the decrement
-   * @param value The value
-   *
-   */
-  decrement(column: string, value: number)
-
-  /**
-   * Pluck method
-   *
-   * Return an array of values for the selected column, example: usersId [1, 2, 3...]
-   *
-   * @param column The column name to make the pluck
-   * @return array Only the values of the selected column in the array
-   *
-   */
-  pluck(column: string): Promise<any[]>
-
-  /**
-   * ColumnInfo method
-   *
-   * @param column Column to retrieve info
-   * @return Return information for a given column
-   *
-   */
-  columnInfo(column: string): Promise<any>
-
-  /**
-   * Close method
-   *
-   * Close the database connection
-   *
-   * @param connections If nothing is passed, will close all the connections.
-   *
-   */
-  close(connections?: string[]): Promise<void>
 }

@@ -17,7 +17,7 @@ import { TransactionContract } from './Contracts/TransactionContract'
 import { InternalServerException, NotImplementedException } from '@secjs/exceptions'
 
 export class Database implements DatabaseContract {
-  private configs: any = {}
+  private runtimeConfig: any
   private connectionName: string
   private driver: DriverContract
 
@@ -54,52 +54,28 @@ export class Database implements DatabaseContract {
 
     this.connectionName = connectionName
 
-    return new Drivers[connectionConfig.driver](connectionName, this.configs)
+    return new Drivers[connectionConfig.driver](connectionName, this.runtimeConfig)
   }
 
-  constructor() {
+  constructor(runtimeConfig: any = {}) {
+    this.runtimeConfig = runtimeConfig
     this.driver = this.createDriverInstance()
   }
 
-  resetConfigs(): DatabaseContract {
-    this.configs = {}
+  connection(connection: string, runtimeConfig: any = {}): DatabaseContract {
+    this.runtimeConfig = runtimeConfig
 
-    this.driver.close()
-    this.driver = this.createDriverInstance()
-
-    return this
-  }
-
-  removeConfig(key: string): DatabaseContract {
-    delete this.configs[key]
-
-    this.driver.close()
-    this.driver = this.createDriverInstance()
-
-    return this
-  }
-
-  addConfig(key: string, value: any): DatabaseContract {
-    this.configs[key] = value
-
-    this.driver.close()
-    this.driver = this.createDriverInstance()
-
-    return this
-  }
-
-  connection(connection: string): DatabaseContract {
     this.driver.close()
     this.driver = this.createDriverInstance(connection)
 
     return this
   }
 
+  // DriverContract Methods
+
   setQueryBuilder(query: any): void {
     this.driver.setQueryBuilder(query)
   }
-
-  // DriverContract Methods
 
   async connect(): Promise<DatabaseContract> {
     await this.driver.connect()

@@ -129,8 +129,7 @@ describe('\n Database PostgreSQL Class', () => {
     await database.createDatabase('new-database')
 
     const newDb = await new Database()
-      .addConfig('database', 'new-database')
-      .connection('postgres')
+      .connection('postgres', { database: 'new-database' })
       .connect()
 
     await newDb.createTable('products', tableBuilder => {
