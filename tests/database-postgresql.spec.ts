@@ -238,8 +238,40 @@ describe('\n Database PostgreSQL Class', () => {
     expect(product).toBeFalsy()
   })
 
-  // TODO Test pluck
-  // TODO Test raw
+  it('should be able to use pluck method, that returns the values of specific table column', async () => {
+    await database
+      .buildTable('products')
+      .insert([
+        { name: 'Apple Watch Series 2' },
+        { name: 'Apple Watch Series 3' },
+      ])
+
+    const productsName = await database.pluck('name')
+
+    expect(productsName.length).toBe(2)
+    expect(productsName[0]).toBe('Apple Watch Series 2')
+    expect(productsName[1]).toBe('Apple Watch Series 3')
+  })
+
+  it('should be able to use raw method to make raw queries to database', async () => {
+    await database
+      .buildTable('products')
+      .insert([
+        { name: 'Apple Watch Series 2' },
+        { name: 'Apple Watch Series 3' },
+      ])
+
+    const products = await database.raw('SELECT * FROM ??;', ['products'])
+
+    // Only for Knex
+    expect(products.command).toBe('SELECT')
+    expect(products.rowCount).toBe(2)
+    expect(products.rowCount).toBe(2)
+    expect(products.rows.length).toBe(2)
+    expect(products.rows[0].id).toBe(1)
+    expect(products.rows[0].name).toBe('Apple Watch Series 2')
+  })
+
   // TODO Test on
 
   afterEach(async () => {

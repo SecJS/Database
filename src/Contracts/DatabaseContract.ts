@@ -137,7 +137,7 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  raw(raw: string, queryValues: string[]): Promise<any>
+  raw(raw: string, queryValues?: any[]): Promise<any>
 
   /**
    * Query method
@@ -301,13 +301,13 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildWhereRaw(raw: string, queryValues: string[]): DatabaseContract
+  buildWhereRaw(raw: string, queryValues?: any[]): DatabaseContract
 
   /**
    * BuildJoin method
    *
    *
-   * @param tableName Table name or a raw query to make the join
+   * @param tableName Table name to make the join
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
@@ -333,7 +333,7 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildJoinRaw(raw: string, queryValues: string[]): DatabaseContract
+  buildJoinRaw(raw: string, queryValues?: any[]): DatabaseContract
 
   /**
    * BuildDistinct method
@@ -358,7 +358,7 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildGroupByRaw(raw: string, queryValues: string[]): DatabaseContract
+  buildGroupByRaw(raw: string, queryValues?: any[]): DatabaseContract
 
   /**
    * BuildOrderBy method
@@ -376,7 +376,7 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildOrderByRaw(raw: string, queryValues: string[]): DatabaseContract
+  buildOrderByRaw(raw: string, queryValues?: any[]): DatabaseContract
 
   /**
    * BuildHaving method

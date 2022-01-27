@@ -34,7 +34,7 @@ export interface TransactionContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  raw(raw: string, queryValues: string[]): Promise<any>
+  raw(raw: string, queryValues?: any[]): Promise<any>
 
   /**
    * Find method
@@ -391,7 +391,7 @@ export interface TransactionContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildWhereRaw(raw: string, queryValues: string[]): TransactionContract
+  buildWhereRaw(raw: string, queryValues?: any[]): TransactionContract
 
   /**
    * BuildJoin method
@@ -423,7 +423,7 @@ export interface TransactionContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildJoinRaw(raw: string, queryValues: string[]): TransactionContract
+  buildJoinRaw(raw: string, queryValues?: any[]): TransactionContract
 
   /**
    * BuildDistinct method
@@ -448,7 +448,7 @@ export interface TransactionContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildGroupByRaw(raw: string, queryValues: string[]): TransactionContract
+  buildGroupByRaw(raw: string, queryValues?: any[]): TransactionContract
 
   /**
    * BuildOrderBy method
@@ -466,7 +466,7 @@ export interface TransactionContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildOrderByRaw(raw: string, queryValues: string[]): TransactionContract
+  buildOrderByRaw(raw: string, queryValues?: any[]): TransactionContract
 
   /**
    * BuildHaving method

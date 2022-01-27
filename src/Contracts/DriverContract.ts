@@ -100,7 +100,7 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  raw(raw: string, queryValues: string[]): Promise<any>
+  raw(raw: string, queryValues?: any[]): Promise<any>
 
   /**
    * Query method
@@ -264,13 +264,13 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildWhereRaw(raw: string, queryValues: string[]): DriverContract
+  buildWhereRaw(raw: string, queryValues?: any[]): DriverContract
 
   /**
    * BuildJoin method
    *
    *
-   * @param tableName Table name or a raw query to make the join
+   * @param tableName Table name to make the join
    * @param column1 Column to make the verification
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
@@ -281,7 +281,7 @@ export interface DriverContract {
    * BuildJoin method
    *
    *
-   * @param tableName Table name or a raw query to make the join
+   * @param tableName Table name to make the join
    * @param column1 Column to make the verification
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
@@ -296,7 +296,7 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildJoinRaw(raw: string, queryValues: string[]): DriverContract
+  buildJoinRaw(raw: string, queryValues?: any[]): DriverContract
 
   /**
    * BuildDistinct method
@@ -321,7 +321,7 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildGroupByRaw(raw: string, queryValues: string[]): DriverContract
+  buildGroupByRaw(raw: string, queryValues?: any[]): DriverContract
 
   /**
    * BuildOrderBy method
@@ -339,7 +339,7 @@ export interface DriverContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildOrderByRaw(raw: string, queryValues: string[]): DriverContract
+  buildOrderByRaw(raw: string, queryValues?: any[]): DriverContract
 
   /**
    * BuildHaving method

@@ -219,8 +219,8 @@ export class PostgresDriver implements DriverContract {
     return this.queryBuilder.pluck(column)
   }
 
-  async raw(...args): Promise<any> {
-    return this.client.raw(args)
+  async raw(raw: string, queryValues?: any[]): Promise<any> {
+    return this.client.raw(raw, queryValues)
   }
 
   async sum(column: string): Promise<number> {
@@ -269,7 +269,7 @@ export class PostgresDriver implements DriverContract {
     return this
   }
 
-  buildGroupByRaw(raw: string, queryValues: string[]): DriverContract {
+  buildGroupByRaw(raw: string, queryValues?: any[]): DriverContract {
     this.queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
 
     return this
@@ -294,7 +294,7 @@ export class PostgresDriver implements DriverContract {
     return this
   }
 
-  buildJoinRaw(raw: string, queryValues: string[]): DriverContract {
+  buildJoinRaw(raw: string, queryValues?: any[]): DriverContract {
     this.queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
 
     return this
@@ -330,7 +330,7 @@ export class PostgresDriver implements DriverContract {
     return this
   }
 
-  buildOrderByRaw(raw: string, queryValues: string[]): DriverContract {
+  buildOrderByRaw(raw: string, queryValues?: any[]): DriverContract {
     this.queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
 
     return this
@@ -446,7 +446,7 @@ export class PostgresDriver implements DriverContract {
     return this
   }
 
-  buildWhereRaw(raw: string, queryValues: string[]): DriverContract {
+  buildWhereRaw(raw: string, queryValues?: any[]): DriverContract {
     this.queryBuilder = this.queryBuilder.whereRaw(raw, queryValues)
 
     return this

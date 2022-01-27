@@ -162,8 +162,8 @@ export class Transaction implements TransactionContract {
     return this.queryBuilder.pluck(column)
   }
 
-  async raw(...args): Promise<any> {
-    return this.trx.raw(args)
+  async raw(raw: string, queryValues?: any[]): Promise<any> {
+    return this.trx.raw(raw, queryValues)
   }
 
   async sum(column: string): Promise<number> {
@@ -212,7 +212,7 @@ export class Transaction implements TransactionContract {
     return this
   }
 
-  buildGroupByRaw(raw: string, queryValues: string[]): TransactionContract {
+  buildGroupByRaw(raw: string, queryValues?: any[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
 
     return this
@@ -237,7 +237,7 @@ export class Transaction implements TransactionContract {
     return this
   }
 
-  buildJoinRaw(raw: string, queryValues: string[]): TransactionContract {
+  buildJoinRaw(raw: string, queryValues?: any[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
 
     return this
@@ -273,7 +273,7 @@ export class Transaction implements TransactionContract {
     return this
   }
 
-  buildOrderByRaw(raw: string, queryValues: string[]): TransactionContract {
+  buildOrderByRaw(raw: string, queryValues?: any[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
 
     return this
@@ -389,7 +389,7 @@ export class Transaction implements TransactionContract {
     return this
   }
 
-  buildWhereRaw(raw: string, queryValues: string[]): TransactionContract {
+  buildWhereRaw(raw: string, queryValues?: any[]): TransactionContract {
     this.queryBuilder = this.queryBuilder.whereRaw(raw, queryValues)
 
     return this
