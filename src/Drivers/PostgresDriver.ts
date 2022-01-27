@@ -10,8 +10,8 @@
 import { Knex } from 'knex'
 import { paginate } from '@secjs/utils'
 import { PaginatedResponse } from '@secjs/contracts'
-import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
 import { DriverContract } from '../Contracts/DriverContract'
+import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
 
 export interface PostgresDriverConfigs {
   url?: string

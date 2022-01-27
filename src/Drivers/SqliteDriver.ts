@@ -102,6 +102,8 @@ export class SqliteDriver implements DriverContract {
   }
 
   async dropDatabase(databaseName: string): Promise<void> {
+    // TODO see how to drop sqlite databases, if is not possible to implement the method,
+    //  throw an error saying that this method is not supported for SqliteDrive
     await this.client.raw('DROP DATABASE IF EXISTS ??', databaseName)
   }
 
