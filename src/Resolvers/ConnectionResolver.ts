@@ -9,31 +9,64 @@
 
 import knex, { Knex } from 'knex'
 import { Config } from '@secjs/config'
+import { InternalServerException } from '@secjs/exceptions'
 
 export class ConnectionResolver {
-  static async knex(client: string, connection: string, configs: any = {}): Promise<Knex> {
-    const databaseConfig = Config.get(`database.connections.${connection}`)
+  private static transpileKnexConConfig(runtimeConfig: any, defaultConfig: any) {
+    const configurations: any = {}
 
-    const conConfig: any = {}
+    if (runtimeConfig.url || defaultConfig.url) {
+      configurations.url = runtimeConfig.url || defaultConfig.url
 
-    if (!configs.url && !databaseConfig.url) {
-      conConfig.host = configs.host || databaseConfig.host
-      conConfig.port = configs.port || databaseConfig.port
-      conConfig.user = configs.username || databaseConfig.username
-      conConfig.password = configs.password || databaseConfig.password
-      conConfig.database = configs.database || databaseConfig.database
-    } else conConfig.uri = configs.url || databaseConfig.url
+      return configurations
+    }
+
+    if (runtimeConfig.filename || defaultConfig.filename) {
+      configurations.filename = runtimeConfig.filename || defaultConfig.filename
+
+      return configurations
+    }
+
+    Object.keys(runtimeConfig).forEach(key => {
+      if (key === 'driver') return
+
+      const requiredKeys = [
+        'host',
+        'username',
+        'password',
+        'database'
+      ]
+
+      configurations[key] = runtimeConfig[key] || defaultConfig[key]
+
+      if (requiredKeys.includes(key)) {
+        if (!configurations[key]) {
+          throw new InternalServerException(
+            `Required key ${key} not found in configurations. Use Database.setConfig to set in runtime or in config/database file.`
+          )
+        }
+      }
+    })
+
+    return configurations
+  }
+
+  static async knex(client: string, connection: string, runtimeConfig: any = {}): Promise<Knex> {
+    const defaultConfig = Config.get(`database.connections.${connection}`)
 
     return knex({
       client,
-      connection: conConfig,
+      connection: this.transpileKnexConConfig(defaultConfig, runtimeConfig),
       migrations: {
-        tableName: configs.migrations || databaseConfig.migrations
+        tableName: Config.get('database.migrations')
       },
-      pool: {
+      pool: defaultConfig.pool || {
         min: 2,
-        max: 10
-      }
+        max: 20,
+        acquireTimeoutMillis: 60 * 1000
+      },
+      debug: defaultConfig.debug || false,
+      useNullAsDefault: defaultConfig.useNullAsDefault || false
     })
   }
 

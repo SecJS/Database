@@ -12,7 +12,7 @@ export default {
   | you may use many connections at once using the Database library.
   |
   */
-  default: Env('DB_CONNECTION', 'postgresql'),
+  default: Env('DB_CONNECTION', 'postgres'),
 
   /*
   |--------------------------------------------------------------------------
@@ -29,8 +29,7 @@ export default {
 
     sqlite: {
       driver: 'sqlite',
-      url: Env('DB_URL', ''),
-      database: Env('DB_DATABASE', Path.database('sqlite')),
+      filename: Env('DB_FILENAME', Path.database('sqlite')),
     },
 
     mysql: {
@@ -39,17 +38,17 @@ export default {
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 3306),
       database: Env('DB_DATABASE', 'mysql'),
-      username: Env('DB_USERNAME', 'root'),
+      user: Env('DB_USERNAME', 'root'),
       password: Env('DB_PASSWORD', ''),
     },
 
-    postgresql: {
-      driver: 'postgresql',
+    postgres: {
+      driver: 'postgres',
       url: Env('DB_URL', ''),
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 5432),
       database: Env('DB_DATABASE', 'postgres'),
-      username: Env('DB_USERNAME', 'root'),
+      user: Env('DB_USERNAME', 'root'),
       password: Env('DB_PASSWORD', ''),
     },
 
@@ -59,7 +58,7 @@ export default {
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 1433),
       database: Env('DB_DATABASE', 'sqlserver'),
-      username: Env('DB_USERNAME', 'root'),
+      user: Env('DB_USERNAME', 'root'),
       password: Env('DB_PASSWORD', ''),
     },
 
@@ -69,7 +68,7 @@ export default {
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 27017),
       database: Env('DB_DATABASE', 'mongodb'),
-      username: Env('DB_USERNAME', 'root'),
+      user: Env('DB_USERNAME', 'root'),
       password: Env('DB_PASSWORD', ''),
     },
 

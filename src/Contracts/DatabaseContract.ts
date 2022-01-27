@@ -12,11 +12,32 @@ import { PaginatedResponse } from '@secjs/contracts'
 import { Knex } from 'knex'
 
 export interface DatabaseContract {
+  /**
+   * Reset all runtime configuration from driver
+   */
   resetConfigs(): DatabaseContract
+
+  /**
+   * Remove runtime configuration from driver
+   *
+   * @param key
+   */
   removeConfig(key: string): DatabaseContract
+
+  /**
+   * Add runtime configuration to driver
+   *
+   * @param key
+   * @param value
+   */
   addConfig(key: string, value: any): DatabaseContract
+
+  /**
+   * Change the database connection
+   *
+   * @param connection
+   */
   connection(connection: string): DatabaseContract
-  changeDefaultConnection(connection: string): DatabaseContract
 
   // DriverContract Methods
 
@@ -26,7 +47,7 @@ export interface DatabaseContract {
    * The most important method from drivers. Creates the connection with database
    *
    */
-  connect(): Promise<void>
+  connect(): Promise<DatabaseContract>
 
   /**
    * On method

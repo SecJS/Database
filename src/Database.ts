@@ -17,9 +17,7 @@ import { InternalServerException, NotImplementedException } from '@secjs/excepti
 
 export class Database implements DatabaseContract {
   private configs: any = {}
-
-  private _tempDriver: DriverContract
-  private _defaultDriver: DriverContract
+  private driver: DriverContract
 
   static build(
     name: string,
@@ -33,34 +31,6 @@ export class Database implements DatabaseContract {
 
   static get drivers(): string[] {
     return Object.keys(Drivers)
-  }
-
-  private get _driver(): DriverContract {
-    if (this._tempDriver) return this._tempDriver
-
-    return this._defaultDriver
-
-    // let targetType = 'defaultDriver'
-    // let target = this._defaultDriver
-    //
-    // if (this._tempDriver) {
-    //   targetType = 'tempDriver'
-    //   target = this._tempDriver
-    // }
-    //
-    // const handler = {
-    //   get: (target, property) => {
-    //     const get = target[property]
-    //
-    //     if (targetType === 'tempDriver') {
-    //       this._tempDriver = null
-    //     }
-    //
-    //     return get
-    //   }
-    // }
-    //
-    // return new Proxy(target, handler)
   }
 
   private createDriverInstance(connectionName?: string) {
@@ -84,15 +54,14 @@ export class Database implements DatabaseContract {
   }
 
   constructor() {
-    this._tempDriver = null
-    this._defaultDriver = this.createDriverInstance()
+    this.driver = this.createDriverInstance()
   }
 
   resetConfigs(): DatabaseContract {
     this.configs = {}
 
-    this._defaultDriver.close()
-    this._defaultDriver = this.createDriverInstance()
+    this.driver.close()
+    this.driver = this.createDriverInstance()
 
     return this
   }
@@ -100,8 +69,8 @@ export class Database implements DatabaseContract {
   removeConfig(key: string): DatabaseContract {
     delete this.configs[key]
 
-    this._defaultDriver.close()
-    this._defaultDriver = this.createDriverInstance()
+    this.driver.close()
+    this.driver = this.createDriverInstance()
 
     return this
   }
@@ -109,316 +78,311 @@ export class Database implements DatabaseContract {
   addConfig(key: string, value: any): DatabaseContract {
     this.configs[key] = value
 
-    this._defaultDriver.close()
-    this._defaultDriver = this.createDriverInstance()
-
-    return this
-  }
-
-  changeDefaultConnection(connection: string): DatabaseContract {
-    this._defaultDriver.close()
-    this._defaultDriver = this.createDriverInstance(connection)
+    this.driver.close()
+    this.driver = this.createDriverInstance()
 
     return this
   }
 
   connection(connection: string): DatabaseContract {
-    this._tempDriver.close()
-    this._tempDriver = this.createDriverInstance(connection)
+    this.driver.close()
+    this.driver = this.createDriverInstance(connection)
 
     return this
   }
 
   // DriverContract Methods
 
-  async connect(): Promise<void> {
-    await this._driver.connect()
+  async connect(): Promise<DatabaseContract> {
+    await this.driver.connect()
+
+    return this
   }
 
   on(event: string, callback: (...params: any) => void) {
-    this._driver.on(event, callback)
+    this.driver.on(event, callback)
   }
 
   cloneQuery<T = any>(): T {
-    return this._driver.cloneQuery()
+    return this.driver.cloneQuery()
   }
 
   async beginTransaction<T = any>(): Promise<T> {
-    return this._driver.beginTransaction()
+    return this.driver.beginTransaction()
   }
 
   async transaction<T = any>(callback: (trx: T) => Promise<void>): Promise<void> {
-    return this._driver.transaction(callback)
+    return this.driver.transaction(callback)
   }
 
   async createDatabase(databaseName: string): Promise<void> {
-    await this._driver.createDatabase(databaseName)
+    await this.driver.createDatabase(databaseName)
   }
 
   async dropDatabase(databaseName: string): Promise<void> {
-    await this._driver.dropDatabase(databaseName)
+    await this.driver.dropDatabase(databaseName)
   }
 
   async createTable(tableName: string, callback: (tableBuilder: any) => void): Promise<void> {
-    await this._driver.createTable(tableName, callback)
+    await this.driver.createTable(tableName, callback)
   }
 
   async dropTable(tableName: string): Promise<void> {
-    await this._driver.dropTable(tableName)
+    await this.driver.dropTable(tableName)
   }
 
   async raw(raw: string, queryValues: string[]): Promise<any> {
-    return this._driver.raw(raw, queryValues)
+    return this.driver.raw(raw, queryValues)
   }
 
   async find(): Promise<any> {
-    return this._driver.find()
+    return this.driver.find()
   }
 
   async findMany(): Promise<any[]> {
-    return this._driver.findMany()
+    return this.driver.findMany()
   }
 
   async insert(values: any | any[]): Promise<string[]> {
-    return this._driver.insert(values)
+    return this.driver.insert(values)
   }
 
   async insertAndGet(values: any | any[]): Promise<any[]> {
-    return this._driver.insertAndGet(values)
+    return this.driver.insertAndGet(values)
   }
 
   async update(key: any | string, value?: any): Promise<string[]> {
-    return this._driver.update(key, value)
+    return this.driver.update(key, value)
   }
 
   async updateAndGet(key: any | string, value?: any): Promise<any[]> {
-    return this._driver.updateAndGet(key, value)
+    return this.driver.updateAndGet(key, value)
   }
 
   async delete(): Promise<number> {
-    return this._driver.delete()
+    return this.driver.delete()
   }
 
   async truncate(tableName: string): Promise<void> {
-    return this._driver.truncate(tableName)
+    return this.driver.truncate(tableName)
   }
 
   async forPage(page: number, limit: number): Promise<any[]> {
-    return this._driver.forPage(page, limit)
+    return this.driver.forPage(page, limit)
   }
 
   async paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>> {
-    return this._driver.paginate(page, limit, resourceUrl)
+    return this.driver.paginate(page, limit, resourceUrl)
   }
 
   async count(column?: string): Promise<number> {
-    return this._driver.count(column)
+    return this.driver.count(column)
   }
 
   async countDistinct(column: string): Promise<number> {
-    return this._driver.countDistinct(column)
+    return this.driver.countDistinct(column)
   }
 
   async min(column: string): Promise<number> {
-    return this._driver.min(column)
+    return this.driver.min(column)
   }
 
   async max(column: string): Promise<number> {
-    return this._driver.max(column)
+    return this.driver.max(column)
   }
 
   async sum(column: string): Promise<number> {
-    return this._driver.sum(column)
+    return this.driver.sum(column)
   }
 
   async sumDistinct(column: string): Promise<number> {
-    return this._driver.sumDistinct(column)
+    return this.driver.sumDistinct(column)
   }
 
   async avg(column: string): Promise<number> {
-    return this._driver.avg(column)
+    return this.driver.avg(column)
   }
 
   async avgDistinct(column: string): Promise<number> {
-    return this._driver.avgDistinct(column)
+    return this.driver.avgDistinct(column)
   }
 
   async increment(column: string, value: number) {
-    return this._driver.increment(column, value)
+    return this.driver.increment(column, value)
   }
 
   async decrement(column: string, value: number) {
-    return this._driver.decrement(column, value)
+    return this.driver.decrement(column, value)
   }
 
   async pluck(column: string): Promise<any[]> {
-    return this._driver.pluck(column)
+    return this.driver.pluck(column)
   }
 
   async columnInfo(column: string): Promise<any> {
-    return this._driver.columnInfo(column)
+    return this.driver.columnInfo(column)
   }
 
   async close(connections?: string[]): Promise<void> {
-    return this._driver.close(connections)
+    return this.driver.close(connections)
   }
 
   query(): any {
-    return this._driver.query()
+    return this.driver.query()
   }
 
   buildTable(tableName: string): DatabaseContract {
-    this._driver.buildTable(tableName)
+    this.driver.buildTable(tableName)
 
     return this
   }
 
   buildSelect(...columns: string[]): DatabaseContract {
-    this._driver.buildSelect(...columns)
+    this.driver.buildSelect(...columns)
 
     return this
   }
 
   buildWhere(statement: string | Record<string, any>, value?: any): DatabaseContract {
-    this._driver.buildWhere(statement, value)
+    this.driver.buildWhere(statement, value)
 
     return this
   }
 
   buildWhereLike(statement: string | Record<string, any>, value?: any): DatabaseContract {
-    this._driver.buildWhereLike(statement, value)
+    this.driver.buildWhereLike(statement, value)
 
     return this
   }
 
   buildWhereILike(statement: string | Record<string, any>, value?: any): DatabaseContract {
-    this._driver.buildWhereILike(statement, value)
+    this.driver.buildWhereILike(statement, value)
 
     return this
   }
 
   buildOrWhere(statement: string | Record<string, any>, value?: any): DatabaseContract {
-    this._driver.buildOrWhere(statement, value)
+    this.driver.buildOrWhere(statement, value)
 
     return this
   }
 
   buildWhereNot(statement: string | Record<string, any>, value?: any): DatabaseContract {
-    this._driver.buildWhereNot(statement, value)
+    this.driver.buildWhereNot(statement, value)
 
     return this
   }
 
   buildWhereIn(columnName: string, values: any[]): DatabaseContract {
-    this._driver.buildWhereIn(columnName, values)
+    this.driver.buildWhereIn(columnName, values)
 
     return this
   }
 
   buildWhereNotIn(columnName: string, values: any[]): DatabaseContract {
-    this._driver.buildWhereNotIn(columnName, values)
+    this.driver.buildWhereNotIn(columnName, values)
 
     return this
   }
 
   buildWhereNull(columnName: string): DatabaseContract {
-    this._driver.buildWhereNull(columnName)
+    this.driver.buildWhereNull(columnName)
 
     return this
   }
 
   buildWhereNotNull(columnName: string): DatabaseContract {
-    this._driver.buildWhereNotNull(columnName)
+    this.driver.buildWhereNotNull(columnName)
 
     return this
   }
 
   buildWhereExists(callback: any): DatabaseContract {
-    this._driver.buildWhereExists(callback)
+    this.driver.buildWhereExists(callback)
 
     return this
   }
 
   buildWhereNotExists(callback: any): DatabaseContract {
-    this._driver.buildWhereNotExists(callback)
+    this.driver.buildWhereNotExists(callback)
 
     return this
   }
 
   buildWhereBetween(columnName: string, values: [any, any]): DatabaseContract {
-    this._driver.buildWhereBetween(columnName, values)
+    this.driver.buildWhereBetween(columnName, values)
 
     return this
   }
 
   buildWhereNotBetween(columnName: string, values: [any, any]): DatabaseContract {
-    this._driver.buildWhereNotBetween(columnName, values)
+    this.driver.buildWhereNotBetween(columnName, values)
 
     return this
   }
 
   buildWhereRaw(raw: string, queryValues: string[]): DatabaseContract {
-    this._driver.buildWhereRaw(raw, queryValues)
+    this.driver.buildWhereRaw(raw, queryValues)
 
     return this
   }
 
   buildJoin(tableName: string, column1: string, operator: string, column2?: string, joinType?: JoinType): DatabaseContract {
-    this._driver.buildJoin(tableName, column1, operator, column2, joinType)
+    this.driver.buildJoin(tableName, column1, operator, column2, joinType)
 
     return this
   }
 
   buildJoinRaw(raw: string, queryValues: string[]): DatabaseContract {
-    this._driver.buildJoinRaw(raw, queryValues)
+    this.driver.buildJoinRaw(raw, queryValues)
 
     return this
   }
 
   buildDistinct(...columns: string[]): DatabaseContract {
-    this._driver.buildDistinct(...columns)
+    this.driver.buildDistinct(...columns)
 
     return this
   }
 
   buildGroupBy(...columns: string[]): DatabaseContract {
-    this._driver.buildGroupBy(...columns)
+    this.driver.buildGroupBy(...columns)
 
     return this
   }
 
   buildGroupByRaw(raw: string, queryValues: string[]): DatabaseContract {
-    this._driver.buildGroupByRaw(raw, queryValues)
+    this.driver.buildGroupByRaw(raw, queryValues)
 
     return this
   }
 
   buildOrderBy(column: string, direction?: 'asc' | 'desc'): DatabaseContract {
-    this._driver.buildOrderBy(column, direction)
+    this.driver.buildOrderBy(column, direction)
 
     return this
   }
 
   buildOrderByRaw(raw: string, queryValues: string[]): DatabaseContract {
-    this._driver.buildOrderByRaw(raw, queryValues)
+    this.driver.buildOrderByRaw(raw, queryValues)
 
     return this
   }
 
   buildHaving(column: string, operator: string, value: any): DatabaseContract {
-    this._driver.buildHaving(column, operator, value)
+    this.driver.buildHaving(column, operator, value)
 
     return this
   }
 
   buildSkip(number: number): DatabaseContract {
-    this._driver.buildSkip(number)
+    this.driver.buildSkip(number)
 
     return this
   }
 
   buildLimit(number: number): DatabaseContract {
-    this._driver.buildLimit(number)
+    this.driver.buildLimit(number)
 
     return this
   }

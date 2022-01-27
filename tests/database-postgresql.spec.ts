@@ -19,9 +19,7 @@ describe('\n Database PostgreSQL Class', () => {
   beforeEach(async () => {
     await new Config().load()
 
-    database = new Database().changeDefaultConnection('postgresql')
-
-    await database.connect()
+    database = await new Database().connection('postgres').connect()
 
     database.buildTable('products')
 
@@ -129,20 +127,19 @@ describe('\n Database PostgreSQL Class', () => {
   it('should be able to create and drop databases from different instances', async () => {
     await database.createDatabase('new-database')
 
-    const newDb = new Database()
+    const newDb = await new Database()
       .addConfig('database', 'new-database')
-      .changeDefaultConnection('postgresql')
-
-    await newDb.connect()
-
-    newDb.buildTable('products')
+      .connection('postgres')
+      .connect()
 
     await newDb.createTable('products', tableBuilder => {
       tableBuilder.increments('id').primary()
       tableBuilder.string('name').notNullable()
     })
 
-    const [product] = await newDb.insertAndGet({ name: 'Product' })
+    const [product] = await newDb
+      .buildTable('products')
+      .insertAndGet({ name: 'Product' })
 
     expect(product.name).toBe('Product')
 
@@ -169,7 +166,28 @@ describe('\n Database PostgreSQL Class', () => {
     expect(iphonesWithDetails[0].detail).toBe('64 GB')
   })
 
+  it('should be able to change the database connection in runtime', async () => {
+    await database.connection('sqlite').connect()
+
+    await database.createTable('products', tableBuilder => {
+      tableBuilder.increments('id').primary()
+      tableBuilder.string('name').notNullable()
+    })
+
+    const macbooks = await database.buildTable('products').insertAndGet([
+      { name: 'Macbook 2019' },
+      { name: 'Macbook 2020' },
+      { name: 'Macbook 2021' },
+    ])
+
+    expect(macbooks.length).toBe(3)
+    expect(macbooks[0].id).toBe(1)
+    expect(macbooks[0].name).toBe('Macbook 2019')
+  })
+
   afterEach(async () => {
+    await database.connection('postgres').connect()
+
     await database.dropDatabase('new-database')
     await database.dropTable('product_details')
     await database.dropTable('products')
