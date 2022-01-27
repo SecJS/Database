@@ -271,7 +271,30 @@ describe('\n Database PostgreSQL Class', () => {
     expect(products.rows[0].name).toBe('Apple Watch Series 2')
   })
 
-  // TODO Test on
+  it('should be able to create callbacks for database events', async () => {
+    database.on('query', (data) => {
+      expect(data.method).toBe('insert')
+    })
+
+    database.on('query-response', async (response, obj, qb: Knex.QueryBuilder) => {
+      expect(response[0].id).toBe(1)
+      expect(response[1].id).toBe(2)
+
+      expect(obj.method).toBe('insert')
+      expect(obj.response.command).toBe('INSERT')
+
+      const sql = qb.toSQL()
+
+      expect(sql.toNative().sql).toBe('insert into "products" ("name") values ($1), ($2) returning "id"')
+    })
+
+    await database
+      .buildTable('products')
+      .insert([
+        { name: 'Apple Watch Series 2' },
+        { name: 'Apple Watch Series 3' },
+      ])
+  })
 
   afterEach(async () => {
     await database.connection('postgres').connect()
