@@ -185,6 +185,12 @@ describe('\n Database PostgreSQL Class', () => {
     expect(macbooks[0].name).toBe('Macbook 2019')
   })
 
+  // TODO Test clone query
+  // TODO Test transaction
+  // TODO Test pluck
+  // TODO Test raw
+  // TODO Test on
+
   afterEach(async () => {
     await database.connection('postgres').connect()
 

@@ -186,17 +186,9 @@ export class PostgresDriver implements DriverContract {
   }
 
   async insertAndGet(values: any | any[]): Promise<any[]> {
-    const promises = []
-
     const arrayOfId = await this.insert(values)
 
-    arrayOfId.forEach(id => {
-      const query = this.query()
-
-      promises.push(query.where('id', id).first())
-    })
-
-    return Promise.all(promises)
+    return this.query().whereIn('id', arrayOfId)
   }
 
   async max(column: string): Promise<number> {
@@ -251,17 +243,9 @@ export class PostgresDriver implements DriverContract {
   }
 
   async updateAndGet(key: any, value?: any): Promise<any[]> {
-    const promises = []
-
     const arrayOfId = await this.update(key, value)
 
-    arrayOfId.forEach(id => {
-      const query = this.query()
-
-      promises.push(query.where('id', id).first())
-    })
-
-    return Promise.all(promises)
+    return this.query().whereIn('id', arrayOfId)
   }
 
   async increment(column: string, value: number) {
