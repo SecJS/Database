@@ -77,8 +77,8 @@ export class SqliteDriver implements DriverContract {
     return this.client.avgDistinct(column)
   }
 
-  async close(connections?: string[]): Promise<void> {
-    await this.client.close(connections)
+  async close(): Promise<void> {
+    await this.client.close()
   }
 
   async columnInfo(column: string): Promise<any> {

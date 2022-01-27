@@ -215,8 +215,8 @@ export class Database implements DatabaseContract {
     return this.driver.columnInfo(column)
   }
 
-  async close(connections?: string[]): Promise<void> {
-    return this.driver.close(connections)
+  async close(): Promise<void> {
+    return this.driver.close()
   }
 
   buildTable(tableName: string): DatabaseContract {

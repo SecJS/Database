@@ -160,7 +160,7 @@ export class KnexClient implements ClientContract {
     return this.queryBuilder.avgDistinct(column)
   }
 
-  async close(connections?: string[]): Promise<void> {
+  async close(): Promise<void> {
     if (!this.isConnected) return
 
     await this.client.destroy()

@@ -588,10 +588,8 @@ export interface ClientContract {
    *
    * Close the database connection
    *
-   * @param connections If nothing is passed, will close all the connections.
-   *
    */
-  close(connections?: string[]): Promise<void>
+  close(): Promise<void>
 }
 
 interface ClientConstructor {
