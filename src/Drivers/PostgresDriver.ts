@@ -9,8 +9,8 @@
 
 import { Knex } from 'knex'
 import { Clients } from '../Clients/Clients'
-import { Transaction } from '../Transaction'
 import { JoinType } from '../Contracts/JoinType'
+import { Transaction } from '../Utils/Transaction'
 import { PaginatedResponse } from '@secjs/contracts'
 import { ClientContract } from '../Contracts/ClientContract'
 import { DriverContract } from '../Contracts/DriverContract'

@@ -7,10 +7,10 @@
  * file that was distributed with this source code.
  */
 
-import { JoinType } from './Contracts/JoinType'
+import { JoinType } from '../Contracts/JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
-import { ClientContract } from './Contracts/ClientContract'
-import { TransactionContract } from './Contracts/TransactionContract'
+import { ClientContract } from '../Contracts/ClientContract'
+import { TransactionContract } from '../Contracts/TransactionContract'
 
 export class Transaction implements TransactionContract {
   private client: ClientContract
