@@ -7,219 +7,142 @@
  * file that was distributed with this source code.
  */
 
-import { Knex } from 'knex'
-import { paginate } from '@secjs/utils'
+import { JoinType } from './Contracts/JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
+import { ClientContract } from './Contracts/ClientContract'
 import { TransactionContract } from './Contracts/TransactionContract'
 
 export class Transaction implements TransactionContract {
-  private trx: Knex.Transaction
-  private queryBuilder: Knex.QueryBuilder
+  private client: ClientContract
 
-  private defaultTable: string
-
-  private query() {
-    const query = this.trx.queryBuilder()
-
-    if (this.defaultTable) query.table(this.defaultTable)
-
-    const handler = {
-      get: (target, propertyKey) => {
-        const protectedMethods = [
-          'pluck',
-          'insert',
-          'update',
-          'delete',
-          'first',
-          'min',
-          'max',
-          'sum',
-          'sumDistinct',
-          'avg',
-          'avgDistinct',
-          'count',
-          'countDistinct',
-          'increment',
-          'decrement'
-        ]
-
-        if (protectedMethods.includes(propertyKey)) {
-          this.queryBuilder = this.query()
-        }
-
-        return target[propertyKey]
-      }
-    }
-
-    return new Proxy<Knex.QueryBuilder>(query, handler)
+  constructor(client: ClientContract) {
+    this.client = client
   }
 
-  constructor(trx: Knex.Transaction) {
-    this.trx = trx
-    this.queryBuilder = this.query()
-  }
+  // Transaction Methods
 
   async commit(value?: any): Promise<any> {
-    const committedTrx = await this.trx.commit(value)
-
-    this.trx = null
-    this.queryBuilder = null
-
-    return committedTrx
+    return this.client.commit(value)
   }
 
   async rollback(error?: any): Promise<any> {
-    const rolledBackTrx = await this.trx.rollback(error)
-
-    this.trx = null
-    this.queryBuilder = null
-
-    return rolledBackTrx
+    return this.client.rollback(error)
   }
 
-  // DriverContract Methods
+  // KnexClient Methods
 
   async avg(column: string): Promise<number> {
-    return this.queryBuilder.avg(column)
+    return this.client.avg(column)
   }
 
   async avgDistinct(column: string): Promise<number> {
-    return this.queryBuilder.avgDistinct(column)
+    return this.client.avgDistinct(column)
   }
 
   async columnInfo(column: string): Promise<any> {
-    return this.trx.withSchema(column).columnInfo()
+    return this.client.columnInfo(column)
   }
 
   async count(column = '*'): Promise<number> {
-    const [count] = await this.queryBuilder.count(column)
-
-    return parseInt(count['count'])
+    return this.client.count(column)
   }
 
   async countDistinct(column: string): Promise<number> {
-    const [countDistinct] = await this.queryBuilder.countDistinct(column)
-
-    return parseInt(countDistinct['count'])
+    return this.client.countDistinct(column)
   }
 
   async decrement(column: string, value: number) {
-    return this.queryBuilder.decrement(column, value)
+    return this.client.decrement(column, value)
   }
 
   async delete(): Promise<number> {
-    return this.queryBuilder.delete()
+    return this.client.delete()
   }
 
   async find(): Promise<any> {
-    return this.queryBuilder.first()
+    return this.client.find()
   }
 
   async findMany(): Promise<any[]> {
-    const data = await this.queryBuilder
-
-    this.queryBuilder = this.query()
-
-    return data
+    return this.client.findMany()
   }
 
   async forPage(page: number, limit: number): Promise<any[]> {
-    return this.buildSkip(page).buildLimit(limit).findMany()
+    return this.client.forPage(page, limit)
   }
 
   async insert(values: any | any[]): Promise<string[]> {
-    const insert: any[] = await this.queryBuilder.insert(values, 'id')
-
-    return insert.map(i => `${i.id}`)
+    return this.client.insert(values)
   }
 
   async insertAndGet(values: any | any[]): Promise<any[]> {
-    const arrayOfId = await this.insert(values)
-
-    return this.query().whereIn('id', arrayOfId)
+    return this.client.insertAndGet(values)
   }
 
   async max(column: string): Promise<number> {
-    return this.queryBuilder.max(column)
+    return this.client.max(column)
   }
 
   async min(column: string): Promise<number> {
-    return this.queryBuilder.min(column)
+    return this.client.min(column)
   }
 
   async paginate(page: number, limit: number, resourceUrl = '/api'): Promise<PaginatedResponse<any>> {
-    const data = await this
-      .buildSkip(page)
-      .buildLimit(limit)
-      .findMany()
-
-    const count = await this.count()
-
-    return paginate(data, count, { page, limit, resourceUrl })
+    return this.client.paginate(page, limit, resourceUrl)
   }
 
   async pluck(column: string): Promise<any[]> {
-    return this.queryBuilder.pluck(column)
+    return this.client.pluck(column)
   }
 
   async raw(raw: string, queryValues?: any[]): Promise<any> {
-    return this.trx.raw(raw, queryValues)
+    return this.client.raw(raw, queryValues)
   }
 
   async sum(column: string): Promise<number> {
-    return this.queryBuilder.sum(column)
+    return this.client.sum(column)
   }
 
   async sumDistinct(column: string): Promise<number> {
-    return this.queryBuilder.sumDistinct(column)
+    return this.client.sumDistinct(column)
   }
 
   async truncate(tableName: string): Promise<void> {
-    await this.trx.table(tableName).truncate()
+    await this.client.truncate(tableName)
   }
 
   async update(key: any, value?: any): Promise<string[]> {
-    if (typeof key === 'object') {
-      const data: any[] = await this.queryBuilder.update(key)
-
-      return data.map(i => `${i.id}`)
-    }
-
-    const data: any[] = await this.queryBuilder.update(key, value, 'id')
-
-    return data.map(i => `${i.id}`)
+    return this.client.update(key, value)
   }
 
   async updateAndGet(key: any, value?: any): Promise<any[]> {
-    const arrayOfId = await this.update(key, value)
-
-    return this.query().whereIn('id', arrayOfId)
+    return this.client.updateAndGet(key, value)
   }
 
   async increment(column: string, value: number) {
-    return this.trx.increment(column, value)
+    return this.client.increment(column, value)
   }
 
   buildDistinct(...columns: string[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.distinct(...columns)
+    this.client.buildDistinct(...columns)
 
     return this
   }
 
   buildGroupBy(...columns: string[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.groupBy(...columns)
+    this.client.buildGroupBy(...columns)
 
     return this
   }
 
   buildGroupByRaw(raw: string, queryValues?: any[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
+    this.client.buildGroupByRaw(raw, queryValues)
 
     return this
   }
 
   buildHaving(column: string, operator: string, value: any): TransactionContract {
-    this.queryBuilder = this.queryBuilder.having(column, operator, value)
+    this.client.buildHaving(column, operator, value)
 
     return this
   }
@@ -229,168 +152,135 @@ export class Transaction implements TransactionContract {
     column1: string,
     operator: string,
     column2?: string,
-    joinType = 'join',
+    joinType: JoinType = 'join',
   ): TransactionContract {
-    if (operator && !column2) this.queryBuilder = this.queryBuilder[joinType](tableName, column1, operator)
-    if (tableName && column2) this.queryBuilder = this.queryBuilder[joinType](tableName, column1, operator, column2)
+    this.client.buildJoin(tableName, column1, operator, column2, joinType)
 
     return this
   }
 
   buildJoinRaw(raw: string, queryValues?: any[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
+    this.client.buildJoinRaw(raw, queryValues)
 
     return this
   }
 
   buildLimit(number: number): TransactionContract {
-    this.queryBuilder = this.queryBuilder.limit(number)
+    this.client.buildLimit(number)
 
     return this
   }
 
   buildSkip(number: number): TransactionContract {
-    this.queryBuilder = this.queryBuilder.offset(number)
+    this.client.buildSkip(number)
 
     return this
   }
 
   buildOrWhere(statement: string | Record<string, any>, value?: any): TransactionContract {
-    if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.where(statement)
-
-      return this
-    }
-
-    this.queryBuilder = this.queryBuilder.where(statement, value)
+    this.client.buildOrWhere(statement, value)
 
     return this
   }
 
   buildOrderBy(column: string, direction?: "asc" | "desc"): TransactionContract {
-    this.queryBuilder = this.queryBuilder.orderBy(column, direction)
+    this.client.buildOrderBy(column, direction)
 
     return this
   }
 
   buildOrderByRaw(raw: string, queryValues?: any[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
+    this.client.buildOrderByRaw(raw, queryValues)
 
     return this
   }
 
   buildSelect(...columns: string[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.select(...columns)
+    this.client.buildSelect(...columns)
 
     return this
   }
 
   buildTable(tableName: string): TransactionContract {
-    this.queryBuilder = this.queryBuilder.table(tableName)
-
-    this.defaultTable = tableName
+    this.client.buildTable(tableName)
 
     return this
   }
 
   buildWhere(statement: string | Record<string, any>, value?: any): TransactionContract {
-    if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.where(statement)
-
-      return this
-    }
-
-    this.queryBuilder = this.queryBuilder.where(statement, value)
+    this.client.buildWhere(statement, value)
 
     return this
   }
 
   buildWhereLike(statement: string | Record<string, any>, value?: any): TransactionContract {
-    if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.whereLike(statement)
-
-      return this
-    }
-
-    this.queryBuilder = this.queryBuilder.whereLike(statement, value)
+    this.client.buildWhereLike(statement, value)
 
     return this
   }
 
   buildWhereILike(statement: string | Record<string, any>, value?: any): TransactionContract {
-    if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.whereIlike(statement)
-
-      return this
-    }
-
-    this.queryBuilder = this.queryBuilder.whereIlike(statement, value)
+    this.client.buildWhereILike(statement, value)
 
     return this
   }
 
   buildWhereBetween(columnName: string, values: [any, any]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereBetween(columnName, values)
+    this.client.buildWhereBetween(columnName, values)
 
     return this
   }
 
   buildWhereExists(callback: any): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereExists(callback)
+    this.client.buildWhereExists(callback)
 
     return this
   }
 
   buildWhereIn(columnName: string, values: any[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereIn(columnName, values)
+    this.client.buildWhereIn(columnName, values)
 
     return this
   }
 
   buildWhereNot(statement: string | Record<string, any>, value?: any): TransactionContract {
-    if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.whereNot(statement)
-
-      return this
-    }
-
-    this.queryBuilder = this.queryBuilder.whereNot(statement, value)
+    this.client.buildWhereNot(statement, value)
 
     return this
   }
 
   buildWhereNotBetween(columnName: string, values: [any, any]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereNotBetween(columnName, values)
+    this.client.buildWhereNotBetween(columnName, values)
 
     return this
   }
 
   buildWhereNotExists(callback: any): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereNotExists(callback)
+    this.client.buildWhereNotExists(callback)
 
     return this
   }
 
   buildWhereNotIn(columnName: string, values: any[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereNotIn(columnName, values)
+    this.client.buildWhereNotIn(columnName, values)
 
     return this
   }
 
   buildWhereNull(columnName: string): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereNull(columnName)
+    this.client.buildWhereNull(columnName)
 
     return this
   }
 
   buildWhereNotNull(columnName: string): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereNotNull(columnName)
+    this.client.buildWhereNotNull(columnName)
 
     return this
   }
 
   buildWhereRaw(raw: string, queryValues?: any[]): TransactionContract {
-    this.queryBuilder = this.queryBuilder.whereRaw(raw, queryValues)
+    this.client.buildWhereRaw(raw, queryValues)
 
     return this
   }

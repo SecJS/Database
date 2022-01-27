@@ -103,14 +103,6 @@ export interface DriverContract {
   raw(raw: string, queryValues?: any[]): Promise<any>
 
   /**
-   * Query method
-   *
-   * @return A new instance of queryBuilder
-   *
-   */
-  query(): any
-
-  /**
    * BuildTable method
    *
    * @param tableName Table selected to run the query.

@@ -7,40 +7,24 @@
  * file that was distributed with this source code.
  */
 
+import { Knex } from 'knex'
 import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
-import { Knex } from 'knex'
-import { TransactionContract } from './TransactionContract'
 
-export interface DatabaseContract {
+export interface ClientContract {
   /**
-   * Reset all runtime configuration from driver
-   */
-  resetConfigs(): DatabaseContract
-
-  /**
-   * Remove runtime configuration from driver
+   * Commit the transaction
    *
-   * @param key
-   */
-  removeConfig(key: string): DatabaseContract
-
-  /**
-   * Add runtime configuration to driver
-   *
-   * @param key
    * @param value
    */
-  addConfig(key: string, value: any): DatabaseContract
+  commit(value?: any): Promise<any | any[]>
 
   /**
-   * Change the database connection
+   * Rollback the transaction
    *
-   * @param connection
+   * @param error
    */
-  connection(connection: string): DatabaseContract
-
-  // DriverContract Methods
+  rollback(error?: any): Promise<any | any[]>
 
   /**
    * Connect method
@@ -48,7 +32,7 @@ export interface DatabaseContract {
    * The most important method from drivers. Creates the connection with database
    *
    */
-  connect(): Promise<DatabaseContract>
+  connect(client: string): Promise<void>
 
   /**
    * On method
@@ -60,16 +44,6 @@ export interface DatabaseContract {
   on(event: string, callback: (...params: any) => void): void
 
   /**
-   * Clone method
-   *
-   * Clone the current database chain for later usage
-   *
-   * @return Return the actual database chain
-   *
-   */
-  clone(): Promise<DatabaseContract>
-
-  /**
    * CloneQuery method
    *
    * Clone the current query chain for later usage
@@ -77,7 +51,7 @@ export interface DatabaseContract {
    * @return Return the actual query chain
    *
    */
-  cloneQuery<T = any>(): T
+  cloneQuery(): any
 
   /**
    * BeginTransaction method
@@ -85,7 +59,7 @@ export interface DatabaseContract {
    * @return The transaction started to make the queries
    *
    */
-  beginTransaction(): Promise<TransactionContract>
+  beginTransaction(): Promise<Knex.Transaction>
 
   /**
    * Transaction method
@@ -139,13 +113,23 @@ export interface DatabaseContract {
    */
   raw(raw: string, queryValues?: any[]): Promise<any>
 
+  setQueryBuilder(query: any): void
+
+  /**
+   * Query method
+   *
+   * @return A new instance of queryBuilder
+   *
+   */
+  query(): any
+
   /**
    * BuildTable method
    *
    * @param tableName Table selected to run the query.
    *
    */
-  buildTable(tableName: string): DatabaseContract
+  buildTable(tableName: string): ClientContract
 
   /**
    * BuildSelect method
@@ -153,7 +137,7 @@ export interface DatabaseContract {
    * @param columns All the columns that will be selected, use * to get all.
    *
    */
-  buildSelect(...columns: string[]): DatabaseContract
+  buildSelect(...columns: string[]): ClientContract
 
   /**
    * Find method
@@ -180,7 +164,7 @@ export interface DatabaseContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhere(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildWhere(statement: string | Record<string, any>, value?: any): ClientContract
 
   /**
    * BuildWhereLike method
@@ -189,7 +173,7 @@ export interface DatabaseContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereLike(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildWhereLike(statement: string | Record<string, any>, value?: any): ClientContract
 
   /**
    * BuildWhereILike method
@@ -198,7 +182,7 @@ export interface DatabaseContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereILike(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildWhereILike(statement: string | Record<string, any>, value?: any): ClientContract
 
   /**
    * BuildOrWhere method
@@ -207,7 +191,7 @@ export interface DatabaseContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildOrWhere(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildOrWhere(statement: string | Record<string, any>, value?: any): ClientContract
 
   /**
    * BuildWhereNot method
@@ -216,7 +200,7 @@ export interface DatabaseContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildWhereNot(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildWhereNot(statement: string | Record<string, any>, value?: any): ClientContract
 
   /**
    * BuildWhereIn method
@@ -225,7 +209,7 @@ export interface DatabaseContract {
    * @param values All the values to make the In.
    *
    */
-  buildWhereIn(columnName: string, values: any[]): DatabaseContract
+  buildWhereIn(columnName: string, values: any[]): ClientContract
 
   /**
    * BuildWhereNotIn method
@@ -234,7 +218,7 @@ export interface DatabaseContract {
    * @param values All the values to make the NotIn.
    *
    */
-  buildWhereNotIn(columnName: string, values: any[]): DatabaseContract
+  buildWhereNotIn(columnName: string, values: any[]): ClientContract
 
   /**
    * BuildWhereNull method
@@ -242,7 +226,7 @@ export interface DatabaseContract {
    * @param columnName The columnName for whereNull.
    *
    */
-  buildWhereNull(columnName: string): DatabaseContract
+  buildWhereNull(columnName: string): ClientContract
 
   /**
    * BuildWhereNotNull method
@@ -250,7 +234,7 @@ export interface DatabaseContract {
    * @param columnName The columnName for whereNotNull.
    *
    */
-  buildWhereNotNull(columnName: string): DatabaseContract
+  buildWhereNotNull(columnName: string): ClientContract
 
   /**
    * BuildWhereExists method
@@ -258,7 +242,7 @@ export interface DatabaseContract {
    * @param callback The callback to be executed in whereExists, could be a query builder too.
    *
    */
-  buildWhereExists(callback: any): DatabaseContract
+  buildWhereExists(callback: any): ClientContract
 
   /**
    * BuildWhereNotExists method
@@ -266,7 +250,7 @@ export interface DatabaseContract {
    * @param callback The callback to be executed in whereNotExists, could be a query builder too.
    *
    */
-  buildWhereNotExists(callback: any): DatabaseContract
+  buildWhereNotExists(callback: any): ClientContract
 
   /**
    * BuildWhereBetween method
@@ -275,7 +259,7 @@ export interface DatabaseContract {
    * @param values Two values to make the between range
    *
    */
-  buildWhereBetween(columnName: string, values: [any, any]): DatabaseContract
+  buildWhereBetween(columnName: string, values: [any, any]): ClientContract
 
   /**
    * BuildWhereNotBetween method
@@ -284,7 +268,7 @@ export interface DatabaseContract {
    * @param values Two values to make the not between range
    *
    */
-  buildWhereNotBetween(columnName: string, values: [any, any]): DatabaseContract
+  buildWhereNotBetween(columnName: string, values: [any, any]): ClientContract
 
   /**
    * BuildWhereRaw method
@@ -293,7 +277,7 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildWhereRaw(raw: string, queryValues?: any[]): DatabaseContract
+  buildWhereRaw(raw: string, queryValues?: any[]): ClientContract
 
   /**
    * BuildJoin method
@@ -304,19 +288,19 @@ export interface DatabaseContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, column2: string, joinType?: JoinType): DatabaseContract
+  buildJoin(tableName: string, column1: string, column2: string, joinType?: JoinType): ClientContract
 
   /**
    * BuildJoin method
    *
    *
-   * @param tableName Table name or a raw query to make the join
+   * @param tableName Table name to make the join
    * @param column1 Column to make the verification
    * @param operator Operation to make in verification such and >=, <, = etc
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): DatabaseContract
+  buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): ClientContract
 
   /**
    * BuildJoinRaw method
@@ -325,7 +309,7 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildJoinRaw(raw: string, queryValues?: any[]): DatabaseContract
+  buildJoinRaw(raw: string, queryValues?: any[]): ClientContract
 
   /**
    * BuildDistinct method
@@ -333,7 +317,7 @@ export interface DatabaseContract {
    * @param columns All columns to select as distinct.
    *
    */
-  buildDistinct(...columns: string[]): DatabaseContract
+  buildDistinct(...columns: string[]): ClientContract
 
   /**
    * BuildGroupBy method
@@ -341,7 +325,7 @@ export interface DatabaseContract {
    * @param columns All columns to groupBy.
    *
    */
-  buildGroupBy(...columns: string[]): DatabaseContract
+  buildGroupBy(...columns: string[]): ClientContract
 
   /**
    * BuildGroupByRaw method
@@ -350,7 +334,7 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildGroupByRaw(raw: string, queryValues?: any[]): DatabaseContract
+  buildGroupByRaw(raw: string, queryValues?: any[]): ClientContract
 
   /**
    * BuildOrderBy method
@@ -359,7 +343,7 @@ export interface DatabaseContract {
    * @param direction The direction of the orderBy, could be only asc or desc
    *
    */
-  buildOrderBy(column: string, direction?: 'asc' | 'desc'): DatabaseContract
+  buildOrderBy(column: string, direction?: 'asc' | 'desc'): ClientContract
 
   /**
    * BuildOrderByRaw method
@@ -368,7 +352,7 @@ export interface DatabaseContract {
    * @param queryValues The values to be replaced by ? inside query in order.
    *
    */
-  buildOrderByRaw(raw: string, queryValues?: any[]): DatabaseContract
+  buildOrderByRaw(raw: string, queryValues?: any[]): ClientContract
 
   /**
    * BuildHaving method
@@ -380,7 +364,7 @@ export interface DatabaseContract {
    * @param value The value
    *
    */
-  buildHaving(column: string, operator: string, value: any): DatabaseContract
+  buildHaving(column: string, operator: string, value: any): ClientContract
 
   /**
    * BuildSkip method
@@ -388,7 +372,7 @@ export interface DatabaseContract {
    * @param number The offset number
    *
    */
-  buildSkip(number: number): DatabaseContract
+  buildSkip(number: number): ClientContract
 
   /**
    * BuildLimit method
@@ -396,7 +380,7 @@ export interface DatabaseContract {
    * @param number The limit number
    *
    */
-  buildLimit(number: number): DatabaseContract
+  buildLimit(number: number): ClientContract
 
   /**
    * Insert method
@@ -609,3 +593,10 @@ export interface DatabaseContract {
    */
   close(connections?: string[]): Promise<void>
 }
+
+interface ClientConstructor {
+  new (client: any): ClientContract
+  new (connection: string, configs?: any): ClientContract
+}
+
+declare let ClientContract: ClientConstructor

@@ -13,8 +13,8 @@ import { JoinType } from './Contracts/JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
 import { DriverContract } from './Contracts/DriverContract'
 import { DatabaseContract } from './Contracts/DatabaseContract'
-import { InternalServerException, NotImplementedException } from '@secjs/exceptions'
 import { TransactionContract } from './Contracts/TransactionContract'
+import { InternalServerException, NotImplementedException } from '@secjs/exceptions'
 
 export class Database implements DatabaseContract {
   private configs: any = {}
@@ -241,10 +241,6 @@ export class Database implements DatabaseContract {
 
   async close(connections?: string[]): Promise<void> {
     return this.driver.close(connections)
-  }
-
-  query(): any {
-    return this.driver.query()
   }
 
   buildTable(tableName: string): DatabaseContract {
