@@ -24,6 +24,22 @@ export class KnexClient implements ClientContract {
   private readonly configs: any
   private readonly connection: string
 
+  constructor(client?: Knex | Knex.Transaction | string, configs?: any) {
+    if (typeof client === 'string') {
+      this.isConnected = false
+      this.defaultTable = null
+
+      this.configs = configs
+      this.connection = client
+
+      return this
+    }
+
+    this.client = client
+    this.isConnected = true
+    this.queryBuilder = this.query()
+  }
+
   setQueryBuilder(query: Knex.QueryBuilder) {
     this.queryBuilder = query
   }
@@ -63,22 +79,6 @@ export class KnexClient implements ClientContract {
     }
 
     return new Proxy<Knex.QueryBuilder>(query, handler)
-  }
-
-  constructor(client?: Knex | Knex.Transaction | string, configs?: any) {
-    if (typeof client === 'string') {
-      this.isConnected = false
-      this.defaultTable = null
-
-      this.configs = configs
-      this.connection = client
-
-      return this
-    }
-
-    this.client = client
-    this.isConnected = true
-    this.queryBuilder = this.query()
   }
 
   async commit(value?: any): Promise<any> {

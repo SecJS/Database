@@ -64,6 +64,7 @@ export default {
 
     mongodb: {
       driver: 'mongodb',
+      protocol: 'mongodb',
       url: Env('DB_URL', ''),
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 27017),

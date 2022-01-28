@@ -8,8 +8,9 @@
  */
 
 import { KnexClient } from './KnexClient'
+import { MongooseClient } from './MongooseClient'
 
 export const Clients = {
   knex: KnexClient,
-  // mongoose: MongooseClient,
+  mongoose: MongooseClient,
 }

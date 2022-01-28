@@ -9,9 +9,25 @@
 
 import knex, { Knex } from 'knex'
 import { Config } from '@secjs/config'
+import { Parser } from '@secjs/utils'
+import { createConnection } from 'mongoose'
 import { InternalServerException } from '@secjs/exceptions'
 
 export class ConnectionResolver {
+  private static createUrl(runtimeConfig: any, defaultConfig: any): string {
+    const host = runtimeConfig.host || defaultConfig.host
+    const port = runtimeConfig.port || defaultConfig.port
+    const user = runtimeConfig.user || defaultConfig.user
+    const protocol = runtimeConfig.protocol || defaultConfig.protocol
+    const password = runtimeConfig.password || defaultConfig.password
+    const database = runtimeConfig.database || defaultConfig.database
+
+    const options = `?${Parser.jsonToFormData(runtimeConfig.options || defaultConfig.options)}`
+    const url = `${protocol}://${user}:${password}@${host}:${port}/${database}${options ? options : ''}`
+
+    return runtimeConfig.url || defaultConfig.url || url
+  }
+
   private static transpileKnexConConfig(runtimeConfig: any, defaultConfig: any) {
     const configurations: any = {}
 
@@ -70,5 +86,13 @@ export class ConnectionResolver {
     })
   }
 
-  // static mongoose(connection: string, configs: any = {}) {}
+  static async mongoose(connection: string, runtimeConfig: any = {}) {
+    const defaultConfig = Config.get(`database.connections.${connection}`)
+
+    const connectionUrl = this.createUrl(defaultConfig, runtimeConfig)
+
+    console.log(connectionUrl)
+
+    return createConnection(connectionUrl, defaultConfig.options)
+  }
 }
