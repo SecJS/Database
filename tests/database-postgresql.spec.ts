@@ -9,10 +9,10 @@
 
 import '@secjs/env/src/utils/global'
 
+import { Knex } from 'knex'
 import { Config } from '@secjs/config'
 import { Database } from '../src/Database'
 import { DatabaseContract } from '../src/Contracts/DatabaseContract'
-import { Knex } from 'knex'
 
 describe('\n Database PostgreSQL Class', () => {
   let database: DatabaseContract = null
