@@ -7,21 +7,13 @@
  * file that was distributed with this source code.
  */
 
-import { ClientSession, Connection } from 'mongoose'
 import { paginate } from '@secjs/utils'
 import { JoinType } from '../Contracts/JoinType'
+import { ClientSession, Connection } from 'mongoose'
 import { PaginatedResponse } from '@secjs/contracts'
+import { InternalServerException } from '@secjs/exceptions'
 import { ClientContract } from '../Contracts/ClientContract'
 import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
-import { InternalServerException } from '@secjs/exceptions'
-
-// if(err) { return console.dir(err); }
-//
-// var collection = db.collection('kittens');
-//
-// collection.find().toArray(function(err, kittens) {
-//   // here ...
-// });
 
 export class MongooseClient implements ClientContract {
   private select: string[]
@@ -156,7 +148,7 @@ export class MongooseClient implements ClientContract {
     if (this.where) model.where(this.where).sort(this.orderBy)
     if (this.join) Object.keys(this.join).forEach(key => model.populate(key, key))
 
-    return model.findOne()
+    return model.findOne().exec()
   }
 
   async findMany(): Promise<any[]> {
@@ -166,7 +158,7 @@ export class MongooseClient implements ClientContract {
     if (this.where) model.where(this.where).sort(this.orderBy)
     if (this.join) Object.keys(this.join).forEach(key => model.populate(key, key))
 
-    return model.find()
+    return model.find().exec()
   }
 
   async insert(values: any | any[]): Promise<string[]> {
