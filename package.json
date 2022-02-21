@@ -9,7 +9,7 @@
   "homepage": "https://github.com/SecJS/Database#readme",
   "scripts": {
     "build": "tsc",
-    "test": "NODE_ENV= jest --verbose",
+    "test": "NODE_ENV=testing NODE_TS=true jest --verbose",
     "test:debug": "DEBUG=* jest --verbose",
     "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
   },
@@ -28,7 +28,7 @@
     "@secjs/contracts": "1.2.1",
     "@secjs/env": "1.2.8",
     "@secjs/exceptions": "1.0.4",
-    "@secjs/utils": "1.5.9",
+    "@secjs/utils": "1.7.0",
     "@types/jest": "27.0.1",
     "@types/knex": "0.16.1",
     "@types/mime-types": "2.1.1",
@@ -78,11 +78,6 @@
   "jest": {
     "modulePaths": [
       "<rootDir>"
-    ],
-    "moduleDirectories": [
-      "node_modules",
-      "src",
-      "tests"
     ],
     "moduleFileExtensions": [
       "js",

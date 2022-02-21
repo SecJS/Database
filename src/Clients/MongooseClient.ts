@@ -7,32 +7,57 @@
  * file that was distributed with this source code.
  */
 
-import { paginate } from '@secjs/utils'
+import { ObjectID } from 'bson'
+import { Is, paginate } from '@secjs/utils'
 import { JoinType } from '../Contracts/JoinType'
-import { ClientSession, Connection } from 'mongoose'
 import { PaginatedResponse } from '@secjs/contracts'
 import { InternalServerException } from '@secjs/exceptions'
 import { ClientContract } from '../Contracts/ClientContract'
 import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
+import { ClientSession, Collection, Connection, isValidObjectId, Schema } from 'mongoose'
+import { Filter } from 'mongodb'
 
 export class MongooseClient implements ClientContract {
-  private select: string[]
-  private join: Record<string, any>
+  private select: Record<string, number> = {}
+  private join: Record<string, any> = {}
   private defaultTable: string
-  private where: Record<string, any>
+  private where: Record<string, any> = {}
   private skip: number
   private limit: number
   private groupBy: string[]
-  private orderBy: Record<string, any>
+  private orderBy: Record<string, 'asc' | 'desc'> = {}
 
   private client: Connection | ClientSession
+  private queryBuilder: Collection
   private isConnected: boolean
 
   private readonly configs: any
   private readonly connection: string
 
+  private safeFilter() {
+    const filter: Filter<any> = {}
+
+    if (!Is.Empty(this.where)) filter.$where = this.where as any
+
+    return filter
+  }
+
+  private safeAggregate() {
+    const pipeline = []
+
+    if (!Is.Empty(this.join)) pipeline.push({ $lookup: this.join })
+    if (!Is.Empty(this.select)) pipeline.push({ $project: this.select })
+    if (!Is.Empty(this.where)) pipeline.push({ $match: this.where })
+    if (!Is.Empty(this.skip)) pipeline.push({ $skip: this.skip })
+    if (!Is.Empty(this.limit)) pipeline.push({ $limit: this.limit })
+    if (!Is.Empty(this.orderBy)) pipeline.push({ $sort: this.orderBy })
+    if (!Is.Empty(this.groupBy)) pipeline.push({ $group: this.groupBy })
+
+    return pipeline
+  }
+
   constructor(client: any | string, configs: any = {}) {
-    if (typeof client === 'string') {
+    if (Is.String(client)) {
       this.isConnected = false
       this.defaultTable = null
 
@@ -110,15 +135,20 @@ export class MongooseClient implements ClientContract {
   }
 
   async dropDatabase(databaseName: string): Promise<void> {
-    const client = this.client as Connection
+    const client = await ConnectionResolver.mongoose(this.connection, {
+      database: databaseName
+    })
 
     await client.dropDatabase()
+    await client.close()
   }
 
-  async createTable(tableName: string, callback: (tableBuilder: any) => void): Promise<void> {
+  async createTable(tableName: string, callback: () => any): Promise<void> {
     const client = this.client as Connection
 
-    await client.createCollection(tableName, callback)
+    const schema = new Schema(callback())
+
+    await client.model(tableName, schema).create()
   }
 
   async dropTable(tableName: string): Promise<void> {
@@ -134,61 +164,77 @@ export class MongooseClient implements ClientContract {
   }
 
   setQueryBuilder(query: any): void {
-    console.log(`Method ${this.setQueryBuilder.name} has not been implemented in ${MongooseClient.name}`)
+    this.queryBuilder = query
   }
 
-  query(): any {
-    console.log(`Method ${this.query.name} has not been implemented in ${MongooseClient.name}`)
+  query(): Collection {
+    const client = this.client as Connection
+
+    if (!this.defaultTable) {
+      throw new InternalServerException('Table is not set, use buildTable method to set mongo collection.')
+    }
+
+    return client.collection(this.defaultTable)
   }
 
   async find(): Promise<any> {
-    const client = this.client as Connection
-    const model = client.model(this.defaultTable)
+    const data = await this.queryBuilder.aggregate(this.safeAggregate()).toArray()
 
-    if (this.where) model.where(this.where).sort(this.orderBy)
-    if (this.join) Object.keys(this.join).forEach(key => model.populate(key, key))
-
-    return model.findOne().exec()
+    return data[0]
   }
 
   async findMany(): Promise<any[]> {
-    const client = this.client as Connection
-    const model = client.model(this.defaultTable)
-
-    if (this.where) model.where(this.where).sort(this.orderBy)
-    if (this.join) Object.keys(this.join).forEach(key => model.populate(key, key))
-
-    return model.find().exec()
+    return this.queryBuilder.aggregate(this.safeAggregate()).toArray()
   }
 
   async insert(values: any | any[]): Promise<string[]> {
-    console.log(`Method ${this.insert.name} has not been implemented in ${MongooseClient.name}`)
+    if (Is.Array(values)) {
+      const data = await this.queryBuilder.insertMany(values)
 
-    return new Promise(resolve => resolve([]))
+      return Object.keys(data.insertedIds).map(key => data.insertedIds[key].toString())
+    }
+
+    const data = await this.queryBuilder.insertOne(values)
+
+    return [data.insertedId.toString()]
   }
 
   async insertAndGet(values: any | any[]): Promise<any[]> {
-    console.log(`Method ${this.insertAndGet.name} has not been implemented in ${MongooseClient.name}`)
+    const arrayOfId = (await this.insert(values)).map(id => new ObjectID(id))
 
-    return new Promise(resolve => resolve([]))
+    return this.query().find({ _id: { $in: arrayOfId } }).toArray()
   }
 
   async update(key: any | string, value?: any): Promise<string[]> {
-    console.log(`Method ${this.update.name} has not been implemented in ${MongooseClient.name}`)
+    if (typeof key === 'object') {
+      const { modifiedCount } = await this.query().updateMany(this.where, { $set: key }, { upsert: false })
 
-    return new Promise(resolve => resolve([]))
+      if (!modifiedCount) return []
+
+      const data = await this.query().find(this.where).toArray()
+
+      return data.map(model => model._id.toString())
+    }
+
+    const { modifiedCount } = await this.query().updateMany(this.where, { $set: { [key]: value } }, { upsert: false })
+
+    if (!modifiedCount) return []
+
+    const data = await this.query().find(this.where).toArray()
+
+    return data.map(model => model._id.toString())
   }
 
   async updateAndGet(key: any | string, value?: any): Promise<any[]> {
-    console.log(`Method ${this.updateAndGet.name} has not been implemented in ${MongooseClient.name}`)
+    const arrayOfId = (await this.update(key, value)).map(id => new ObjectID(id))
 
-    return new Promise(resolve => resolve([]))
+    return this.query().find({ _id: { $in: arrayOfId } }).toArray()
   }
 
   async delete(): Promise<number> {
-    console.log(`Method ${this.delete.name} has not been implemented in ${MongooseClient.name}`)
+    const { deletedCount } = await this.queryBuilder.deleteMany(this.where)
 
-    return new Promise(resolve => resolve(0))
+    return deletedCount
   }
 
   async truncate(tableName: string): Promise<void> {
@@ -196,21 +242,24 @@ export class MongooseClient implements ClientContract {
   }
 
   async forPage(page: number, limit: number): Promise<any[]> {
-    console.log(`Method ${this.forPage.name} has not been implemented in ${MongooseClient.name}`)
-
-    return new Promise(resolve => resolve([]))
+    return this.buildSkip(page).buildLimit(limit).findMany()
   }
 
   async paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>> {
-    console.log(`Method ${this.paginate.name} has not been implemented in ${MongooseClient.name}`)
+    const data = await this
+      .buildSkip(page)
+      .buildLimit(limit)
+      .findMany()
 
-    return paginate([], 0, { page, limit, resourceUrl })
+    const count = await this.count()
+
+    return paginate(data, count, { page, limit, resourceUrl })
   }
 
   async count(column?: string): Promise<number> {
-    console.log(`Method ${this.count.name} has not been implemented in ${MongooseClient.name}`)
+    this.select[column] = 1
 
-    return new Promise(resolve => resolve(0))
+    return this.queryBuilder.countDocuments(this.safeFilter())
   }
 
   async countDistinct(column: string): Promise<number> {
@@ -293,18 +342,21 @@ export class MongooseClient implements ClientContract {
 
   buildTable(tableName: string): ClientContract {
     this.defaultTable = tableName
+    this.queryBuilder = this.query()
 
     return this
   }
 
   buildSelect(...columns: string[]): ClientContract {
-    this.select = columns
+    columns.forEach(column => this.select[column] = 1)
 
     return this
   }
 
   buildWhere(statement: string | Record<string, any>, value?: any): ClientContract {
     if (typeof statement === 'string') {
+      if (isValidObjectId(value) && Is.String(value)) value = new ObjectID(value)
+
       this.where[statement] = value
 
       return this
@@ -449,7 +501,7 @@ export class MongooseClient implements ClientContract {
   }
 
   buildDistinct(...columns: string[]): ClientContract {
-    console.log(`Method ${this.buildDistinct.name} has not been implemented in ${MongooseClient.name}`)
+    columns.forEach(column => this.select[column] = -1)
 
     return this
   }
@@ -467,7 +519,7 @@ export class MongooseClient implements ClientContract {
   }
 
   buildOrderBy(column: string, direction?: 'asc' | 'desc'): ClientContract {
-    this.orderBy[column] = direction.toUpperCase()
+    this.orderBy[column] = direction
 
     return this
   }

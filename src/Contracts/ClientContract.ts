@@ -94,7 +94,7 @@ export interface ClientContract {
    * @param callback The callback function with tableBuilder inside
    *
    */
-  createTable(tableName: string, callback: (tableBuilder: Knex.CreateTableBuilder) => void): Promise<void>
+  createTable(tableName: string, callback: (tableBuilder?: any) => any): Promise<void>
 
   /**
    * DropTable method

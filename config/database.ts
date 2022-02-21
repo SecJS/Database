@@ -62,9 +62,9 @@ export default {
       password: Env('DB_PASSWORD', ''),
     },
 
-    mongodb: {
-      driver: 'mongodb',
-      protocol: 'mongodb',
+    mongo: {
+      driver: 'mongo',
+      protocol: 'mongo',
       url: Env('DB_URL', ''),
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 27017),

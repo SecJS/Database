@@ -14,7 +14,22 @@ import { createConnection } from 'mongoose'
 import { InternalServerException } from '@secjs/exceptions'
 
 export class ConnectionResolver {
-  private static createUrl(runtimeConfig: any, defaultConfig: any): string {
+  private static createUrl(defaultConfig: any, runtimeConfig: any): string {
+    let url = runtimeConfig.url || defaultConfig.url
+
+    if (url) {
+      const connectionObject = Parser.dbUrlToConnectionObj(url)
+
+      if (runtimeConfig.host) connectionObject.host = runtimeConfig.host
+      if (runtimeConfig.port) connectionObject.port = runtimeConfig.port
+      if (runtimeConfig.user) connectionObject.user = runtimeConfig.user
+      if (runtimeConfig.protocol) connectionObject.protocol = runtimeConfig.protocol
+      if (runtimeConfig.password) connectionObject.password = runtimeConfig.password
+      if (runtimeConfig.database) connectionObject.database = runtimeConfig.database
+
+      return Parser.connectionObjToDbUrl(connectionObject)
+    }
+
     const host = runtimeConfig.host || defaultConfig.host
     const port = runtimeConfig.port || defaultConfig.port
     const user = runtimeConfig.user || defaultConfig.user
@@ -22,10 +37,15 @@ export class ConnectionResolver {
     const password = runtimeConfig.password || defaultConfig.password
     const database = runtimeConfig.database || defaultConfig.database
 
-    const options = `?${Parser.jsonToFormData(runtimeConfig.options || defaultConfig.options)}`
-    const url = `${protocol}://${user}:${password}@${host}:${port}/${database}${options ? options : ''}`
+    let options = '?'
 
-    return runtimeConfig.url || defaultConfig.url || url
+    if (runtimeConfig.options || defaultConfig.options) {
+      const parsedOptions = Parser.jsonToFormData(runtimeConfig.options || defaultConfig.options)
+
+      options += parsedOptions
+    }
+
+    return `${protocol}://${user}:${password}@${host}:${port}/${database}${options ? options : ''}`
   }
 
   private static transpileKnexConConfig(runtimeConfig: any, defaultConfig: any) {
@@ -90,8 +110,6 @@ export class ConnectionResolver {
     const defaultConfig = Config.get(`database.connections.${connection}`)
 
     const connectionUrl = this.createUrl(defaultConfig, runtimeConfig)
-
-    console.log(connectionUrl)
 
     return createConnection(connectionUrl, defaultConfig.options)
   }
