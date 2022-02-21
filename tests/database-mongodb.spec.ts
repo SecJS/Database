@@ -22,19 +22,15 @@ describe('\n Database Mongo Class', () => {
 
     database.buildTable('products')
 
-    await database.createTable('products', () => {
-      return {
-        name: { type: String, required: true }
-      }
-    })
+    await database.createTable('products', () => ({
+      name: { type: String, required: true }
+    }))
 
-    await database.createTable('product_details', () => {
-      return {
-        detail: { type: String, required: true },
-        productId: { type: String, required: true },
-        product: { type: Schema.Types.ObjectId, required: true, ref: 'products' }
-      }
-    })
+    await database.createTable('product_details', () => ({
+      detail: { type: String, required: true },
+      productId: { type: String, required: true },
+      product: { type: Schema.Types.ObjectId, required: true, ref: 'products' }
+    }))
   })
 
   it('should insert new products to the database', async () => {
@@ -133,11 +129,9 @@ describe('\n Database Mongo Class', () => {
       .connection('mongo', { database: 'new-database' })
       .connect()
 
-    await newDb.createTable('products', () => {
-      return {
-        name: { type: String, required: true }
-      }
-    })
+    await newDb.createTable('products', () => ({
+      name: { type: String, required: true }
+    }))
 
     const [product] = await newDb
       .buildTable('products')
