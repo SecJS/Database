@@ -143,6 +143,72 @@ describe('\n Database Mongo Class', () => {
     await database.dropDatabase('new-database')
   }, 10000)
 
+  it('should be able to join on other related tables', async () => {
+    const iphones = await database.insertAndGet([
+      { name: 'iPhone 10' },
+      { name: 'iPhone 11' },
+      { name: 'iPhone 12' }
+    ])
+
+    await Promise.all(iphones.map(iphone => database.buildTable('product_details').insert({ detail: '64 GB', product: iphone, productId: iphone._id })))
+    await Promise.all(iphones.map(iphone => database.buildTable('product_details').insert({ detail: 'CPU ARM Arch', product: iphone, productId: iphone._id })))
+
+    const iphonesWithDetails = await database
+      .buildTable('products')
+      .buildJoin('product_details', 'products._id', 'product_details.productId')
+      .findMany()
+
+    expect(iphonesWithDetails.length).toBe(3)
+    expect(iphonesWithDetails[0].product_details[0].detail).toBe('64 GB')
+  })
+
+  it('should be able to change the database connection in runtime', async () => {
+    await database.connection('sqlite').connect()
+
+    await database.createTable('products', tableBuilder => {
+      tableBuilder.increments('id').primary()
+      tableBuilder.string('name').notNullable()
+    })
+
+    const macbooks = await database.buildTable('products').insertAndGet([
+      { name: 'Macbook 2019' },
+      { name: 'Macbook 2020' },
+      { name: 'Macbook 2021' },
+    ])
+
+    expect(macbooks.length).toBe(3)
+    expect(macbooks[0].id).toBe(1)
+    expect(macbooks[0].name).toBe('Macbook 2019')
+  })
+
+  it('should be able to clone the database with the exactly query chain', async () => {
+    database.buildTable('products')
+
+    const clonedDatabase = await database.clone()
+
+    // This should insert in products table because of database.buildTable
+    const arrayOfIds = await clonedDatabase.insert({ name: 'AirPods 2' })
+
+    await clonedDatabase.close()
+
+    expect(arrayOfIds.length).toBe(1)
+  })
+
+  it('should be able to create database transactions and commit then', async () => {
+    const trx = await database.beginTransaction()
+
+    trx.buildTable('products')
+    const products = await trx.insertAndGet({ name: 'AirPods 3' })
+
+    expect(products.length).toBe(1)
+
+    await trx.commit()
+
+    const product = await database.buildWhere('id', products[0].id).find()
+
+    expect(product.id).toBe(products[0].id)
+  })
+
   afterEach(async () => {
     await database.dropTable('product_details')
     await database.dropTable('products')

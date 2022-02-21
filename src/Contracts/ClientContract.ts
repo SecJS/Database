@@ -59,7 +59,7 @@ export interface ClientContract {
    * @return The transaction started to make the queries
    *
    */
-  beginTransaction(): Promise<Knex.Transaction>
+  beginTransaction(): Promise<any>
 
   /**
    * Transaction method

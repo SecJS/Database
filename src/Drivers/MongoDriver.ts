@@ -15,6 +15,7 @@ import { PostgresDriverConfigs } from './PostgresDriver'
 import { DriverContract } from '../Contracts/DriverContract'
 import { ClientContract } from '../Contracts/ClientContract'
 import { TransactionContract } from '../Contracts/TransactionContract'
+import { ClientSession } from 'mongoose'
 
 export class MongoDriver implements DriverContract {
   private client: ClientContract
@@ -40,9 +41,9 @@ export class MongoDriver implements DriverContract {
   }
 
   async beginTransaction(): Promise<TransactionContract> {
-    const trx = await this.client.beginTransaction()
+    const { client, configs, session } = await this.client.beginTransaction()
 
-    return new Transaction(new Clients.knex(trx))
+    return new Transaction(new Clients.mongoose(client, configs, session))
   }
 
   async transaction(callback: (trx: any) => Promise<void>): Promise<void> {

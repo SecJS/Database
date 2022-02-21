@@ -8,6 +8,7 @@
  */
 
 import { ObjectID } from 'bson'
+import { Filter } from 'mongodb'
 import { Is, paginate } from '@secjs/utils'
 import { JoinType } from '../Contracts/JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
@@ -15,11 +16,10 @@ import { InternalServerException } from '@secjs/exceptions'
 import { ClientContract } from '../Contracts/ClientContract'
 import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
 import { ClientSession, Collection, Connection, isValidObjectId, Schema } from 'mongoose'
-import { Filter } from 'mongodb'
 
 export class MongooseClient implements ClientContract {
   private select: Record<string, number> = {}
-  private join: Record<string, any> = {}
+  private joins: Record<string, any>[] = []
   private defaultTable: string
   private where: Record<string, any> = {}
   private skip: number
@@ -27,7 +27,8 @@ export class MongooseClient implements ClientContract {
   private groupBy: string[]
   private orderBy: Record<string, 'asc' | 'desc'> = {}
 
-  private client: Connection | ClientSession
+  private client: Connection
+  private session: ClientSession
   private queryBuilder: Collection
   private isConnected: boolean
 
@@ -45,7 +46,7 @@ export class MongooseClient implements ClientContract {
   private safeAggregate() {
     const pipeline = []
 
-    if (!Is.Empty(this.join)) pipeline.push({ $lookup: this.join })
+    if (!Is.Empty(this.joins)) pipeline.push(...this.joins)
     if (!Is.Empty(this.select)) pipeline.push({ $project: this.select })
     if (!Is.Empty(this.where)) pipeline.push({ $match: this.where })
     if (!Is.Empty(this.skip)) pipeline.push({ $skip: this.skip })
@@ -56,7 +57,7 @@ export class MongooseClient implements ClientContract {
     return pipeline
   }
 
-  constructor(client: any | string, configs: any = {}) {
+  constructor(client: any | string, configs: any = {}, session?: ClientSession) {
     if (Is.String(client)) {
       this.isConnected = false
       this.defaultTable = null
@@ -68,23 +69,16 @@ export class MongooseClient implements ClientContract {
     }
 
     this.client = client
+    this.session = session
     this.isConnected = true
   }
 
   async commit(value?: any): Promise<any | any[]> {
-    if (this.client instanceof Connection) {
-      throw new InternalServerException('Client is not a transaction to be committed')
-    }
-
-    return this.client.commitTransaction()
+    return this.session.commitTransaction()
   }
 
   async rollback(error?: any): Promise<any | any[]> {
-    if (this.client instanceof Connection) {
-      throw new InternalServerException('Client is not a transaction to be rollback')
-    }
-
-    return this.client.abortTransaction()
+    return this.session.abortTransaction()
   }
 
   async connect(client: string): Promise<void> {
@@ -100,27 +94,27 @@ export class MongooseClient implements ClientContract {
   }
 
   cloneQuery(): any {
-    // return this.client.collection(this.defaultTable).find(this.where).skip(this.skip).limit(this.limit).sort(this.orderBy)
-    return {}
+    return {
+      select: this.select,
+      joins: this.joins,
+      defaultTable: this.defaultTable,
+      where: this.where,
+      skip: this.skip,
+      limit: this.limit,
+      groupBy: this.groupBy,
+      orderBy: this.orderBy,
+    }
   }
 
   async beginTransaction(): Promise<any> {
-    if (!(this.client instanceof Connection)) {
-      throw new InternalServerException('Client is not a transaction to be started')
-    }
-
     const session = await this.client.startSession()
 
     await session.startTransaction()
 
-    return session
+    return { client: this.client, configs: this.configs, session }
   }
 
   async transaction(callback: (trx: any) => Promise<void>): Promise<void> {
-    if (!(this.client instanceof Connection)) {
-      throw new InternalServerException('Client is not a transaction to be started')
-    }
-
     const trx = await this.client.startSession()
 
     await trx.withTransaction(callback)
@@ -144,17 +138,15 @@ export class MongooseClient implements ClientContract {
   }
 
   async createTable(tableName: string, callback: () => any): Promise<void> {
-    const client = this.client as Connection
-
     const schema = new Schema(callback())
 
-    await client.model(tableName, schema).create()
+    await this.client.model(tableName, schema).create()
   }
 
   async dropTable(tableName: string): Promise<void> {
-    const client = this.client as Connection
-
-    await client.dropCollection(tableName)
+    try {
+      await this.client.dropCollection(tableName)
+    } catch (err) {}
   }
 
   async raw(raw: string, queryValues?: any[]): Promise<any> {
@@ -164,17 +156,24 @@ export class MongooseClient implements ClientContract {
   }
 
   setQueryBuilder(query: any): void {
-    this.queryBuilder = query
+    this.select = query.select
+    this.joins = query.joins
+    this.defaultTable = query.defaultTable
+    this.where = query.where
+    this.skip = query.skip
+    this.limit = query.limit
+    this.groupBy = query.groupBy
+    this.orderBy = query.orderBy
+
+    if (this.defaultTable) this.queryBuilder = this.query()
   }
 
   query(): Collection {
-    const client = this.client as Connection
-
     if (!this.defaultTable) {
       throw new InternalServerException('Table is not set, use buildTable method to set mongo collection.')
     }
 
-    return client.collection(this.defaultTable)
+    return this.client.collection(this.defaultTable)
   }
 
   async find(): Promise<any> {
@@ -329,11 +328,9 @@ export class MongooseClient implements ClientContract {
   }
 
   async close(): Promise<void> {
-    const client = this.client as Connection
-
     if (!this.isConnected) return
 
-    await client.close()
+    await this.client.close()
 
     this.client = null
     this.isConnected = false
@@ -485,11 +482,23 @@ export class MongooseClient implements ClientContract {
   }
 
   buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): ClientContract {
-    this.join[tableName] = {
-      column1,
-      operator,
-      column2,
+    let foreignField = column2 || operator
+
+    if (foreignField.includes('.')) {
+      const [table, column] = foreignField.split('.')
+
+      if (table !== tableName) throw new InternalServerException(`Property ${foreignField} should join in ${tableName}`)
+
+      foreignField = column
     }
+
+    let localField = column1
+
+    if (localField.includes('.')) {
+      localField = localField.split('.')[1]
+    }
+
+    this.joins.push({ $lookup: { from: tableName, localField, foreignField, as: tableName } })
 
     return this
   }
