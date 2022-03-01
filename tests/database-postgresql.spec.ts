@@ -18,20 +18,28 @@ describe('\n Database PostgreSQL Class', () => {
   let database: DatabaseContract = null
 
   beforeEach(async () => {
+    process.env.DB_HOST = 'localhost'
+    process.env.DB_PORT = '5433'
+    process.env.DB_DATABASE = 'secjs-database-testing'
+    process.env.DB_USERNAME = 'postgres'
+    process.env.DB_PASSWORD = 'root'
+    process.env.DB_FILENAME = ':memory:'
+
     await new Config().load()
 
     database = await new Database().connection('postgres').connect()
 
     database.buildTable('products')
 
-    await database.createTable('products', tableBuilder => {
+    await database.createTable('products', (tableBuilder: Knex.TableBuilder) => {
       tableBuilder.increments('id').primary()
-      tableBuilder.string('name').notNullable()
+      tableBuilder.string('name').nullable()
+      tableBuilder.integer('quantity').nullable().defaultTo(0)
     })
 
-    await database.createTable('product_details', tableBuilder => {
+    await database.createTable('product_details', (tableBuilder: Knex.TableBuilder) => {
       tableBuilder.increments('id').primary()
-      tableBuilder.string('detail').notNullable()
+      tableBuilder.string('detail').nullable()
       tableBuilder.integer('productId').references('id').inTable('products')
     })
   })
@@ -281,13 +289,13 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should be able to get the min and max values from some column', async () => {
-    await database.createTable('smartphones', () => ({
-      quantity: { type: Number, required: true },
-    }))
-
-    await database
-      .buildTable('smartphones')
-      .insert([{ quantity: -40 }, { quantity: 10 }, { quantity: 20 }, { quantity: 30 }, { quantity: 40 }])
+    await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: 10 },
+      { name: 'iPhone 3', quantity: 20 },
+      { name: 'iPhone 4', quantity: 30 },
+      { name: 'iPhone 5', quantity: 40 },
+    ])
 
     const max = await database.max('quantity')
     const min = await database.min('quantity')
@@ -297,16 +305,14 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should be able to sum and sum distinct the database data', async () => {
-    await database
-      .buildTable('smartphones')
-      .insert([
-        { quantity: -40 },
-        { quantity: 10 },
-        { quantity: 20 },
-        { quantity: 30 },
-        { quantity: 40 },
-        { quantity: 40 },
-      ])
+    await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: 10 },
+      { name: 'iPhone 3', quantity: 20 },
+      { name: 'iPhone 4', quantity: 30 },
+      { name: 'iPhone 5', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+    ])
 
     const qtyTotal = await database.sum('quantity')
     const qtyTotalDistinct = await database.sumDistinct('quantity')
@@ -316,16 +322,14 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should be able to get the avg and avg distinct from the database data', async () => {
-    await database
-      .buildTable('smartphones')
-      .insert([
-        { quantity: -40 },
-        { quantity: 10 },
-        { quantity: 20 },
-        { quantity: 30 },
-        { quantity: 40 },
-        { quantity: 40 },
-      ])
+    await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: 10 },
+      { name: 'iPhone 3', quantity: 20 },
+      { name: 'iPhone 4', quantity: 30 },
+      { name: 'iPhone 5', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+    ])
 
     const qtyAvg = await database.avg('quantity')
     const qtyAvgDistinct = await database.avgDistinct('quantity')
@@ -335,30 +339,31 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should be able to increment and decrement values from database', async () => {
-    const ids = await database
-      .buildTable('smartphones')
-      .insert([
-        { quantity: -40 },
-        { quantity: 10 },
-        { quantity: 20 },
-        { quantity: 30 },
-        { quantity: 40 },
-        { quantity: 40 },
-      ])
+    const ids = await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: 10 },
+      { name: 'iPhone 3', quantity: 20 },
+      { name: 'iPhone 4', quantity: 30 },
+      { name: 'iPhone 5', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+    ])
 
-    const increment = await database.buildWhere('_id', ids[1]).increment('quantity', 20)
-    const decrement = await database.buildWhere('_id', ids[2]).decrement('quantity', 20)
+    await database.buildWhere('id', ids[1]).increment('quantity', 20)
+    await database.buildWhere('id', ids[2]).decrement('quantity', 20)
 
-    expect(increment[0].quantity).toBe(30)
-    expect(decrement[0].quantity).toBe(0)
+    const increment = await database.buildWhere('id', ids[1]).find()
+    const decrement = await database.buildWhere('id', ids[2]).find()
+
+    expect(increment.quantity).toBe(30)
+    expect(decrement.quantity).toBe(0)
   })
 
   it('should be able to get infos from some database column', async () => {
     const columnInfo = await database.buildTable('products').columnInfo('name')
 
-    expect(columnInfo.defaultValue).toBe('null')
-    expect(columnInfo.type).toBe('any')
-    expect(columnInfo.maxLength).toBe('255')
+    expect(columnInfo.defaultValue).toBe(null)
+    expect(columnInfo.type).toBe('character varying')
+    expect(columnInfo.maxLength).toBe(255)
     expect(columnInfo.nullable).toBe(true)
   })
 
@@ -377,6 +382,7 @@ describe('\n Database PostgreSQL Class', () => {
 
     const iphones = await database
       .buildTable('products')
+      .buildSelect('name', 'quantity')
       .buildGroupBy('name', 'quantity')
       .buildOrderBy('quantity', 'desc')
       .buildHaving('quantity', '<=', 40)
@@ -384,11 +390,11 @@ describe('\n Database PostgreSQL Class', () => {
 
     expect(iphones.length).toBe(6)
 
-    expect(iphones[0].name).toBe('iPhone 1')
-    expect(iphones[0].quantity).toBe(-40)
+    expect(iphones[0].name).toBe('iPhone 6')
+    expect(iphones[0].quantity).toBe(40)
 
-    expect(iphones[5].name).toBe('iPhone 6')
-    expect(iphones[5].quantity).toBe(40)
+    expect(iphones[5].name).toBe('iPhone 1')
+    expect(iphones[5].quantity).toBe(-40)
   })
 
   afterEach(async () => {

@@ -154,7 +154,7 @@ export class KnexClient implements ClientContract {
 
   async createTable(
     tableName: string,
-    callback: (tableBuilder: any) => void,
+    callback: (tableBuilder: Knex.TableBuilder) => void,
   ): Promise<void> {
     const existsTable = await this.client.schema.hasTable(tableName)
 
@@ -166,11 +166,15 @@ export class KnexClient implements ClientContract {
   }
 
   async avg(column: string): Promise<number> {
-    return this.queryBuilder.avg(column)
+    const [{ avg }] = await this.queryBuilder.avg(column)
+
+    return parseFloat(avg)
   }
 
   async avgDistinct(column: string): Promise<number> {
-    return this.queryBuilder.avgDistinct(column)
+    const [{ avg }] = await this.queryBuilder.avgDistinct(column)
+
+    return parseFloat(avg)
   }
 
   async close(): Promise<void> {
@@ -185,23 +189,19 @@ export class KnexClient implements ClientContract {
   }
 
   async columnInfo(column: string): Promise<any> {
-    return this.client.withSchema(column).columnInfo()
+    return this.queryBuilder.columnInfo(column)
   }
 
   async count(column = '*'): Promise<number> {
     const [count] = await this.queryBuilder.count(column)
 
-    return parseInt(count['count'])
+    return parseFloat(count['count'])
   }
 
   async countDistinct(column: string): Promise<number> {
     const [countDistinct] = await this.queryBuilder.countDistinct(column)
 
-    return parseInt(countDistinct['count'])
-  }
-
-  async decrement(column: string, value: number) {
-    return this.queryBuilder.decrement(column, value)
+    return parseFloat(countDistinct['count'])
   }
 
   async delete(): Promise<number> {
@@ -237,11 +237,15 @@ export class KnexClient implements ClientContract {
   }
 
   async max(column: string): Promise<number> {
-    return this.queryBuilder.max(column)
+    const [{ max }] = await this.queryBuilder.max(column)
+
+    return max
   }
 
   async min(column: string): Promise<number> {
-    return this.queryBuilder.min(column)
+    const [{ min }] = await this.queryBuilder.min(column)
+
+    return min
   }
 
   async paginate(
@@ -265,11 +269,15 @@ export class KnexClient implements ClientContract {
   }
 
   async sum(column: string): Promise<number> {
-    return this.queryBuilder.sum(column)
+    const [{ sum }] = await this.queryBuilder.sum(column)
+
+    return parseFloat(sum)
   }
 
   async sumDistinct(column: string): Promise<number> {
-    return this.queryBuilder.sumDistinct(column)
+    const [{ sum }] = await this.queryBuilder.sumDistinct(column)
+
+    return parseFloat(sum)
   }
 
   async truncate(tableName: string): Promise<void> {
@@ -294,8 +302,12 @@ export class KnexClient implements ClientContract {
     return this.query().whereIn('id', arrayOfId)
   }
 
-  async increment(column: string, value: number) {
-    return this.client.increment(column, value)
+  async increment(column: string, value: number): Promise<void> {
+    await this.queryBuilder.increment(column, value)
+  }
+
+  async decrement(column: string, value: number): Promise<void> {
+    await this.queryBuilder.decrement(column, value)
   }
 
   buildDistinct(...columns: string[]): KnexClient {
