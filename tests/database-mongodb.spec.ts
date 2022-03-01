@@ -8,30 +8,39 @@
  */
 
 import '@secjs/env/src/utils/global'
-import '@secjs/config/src/utils/global'
 
-import { Schema } from 'mongoose'
+import { Config } from '@secjs/config'
 import { Database } from '../src/Database'
+import { TableBuilder } from '../src/Builders/TableBuilder'
 import { DatabaseContract } from '../src/Contracts/DatabaseContract'
 
 describe('\n Database Mongo Class', () => {
   let database: DatabaseContract = null
 
   beforeEach(async () => {
+    process.env.DB_HOST = 'localhost:27017,localhost:27018,localhost:27019'
+    process.env.DB_PORT = '30001'
+    process.env.DB_DATABASE = 'secjs-database-testing'
+    process.env.DB_USERNAME = 'root'
+    process.env.DB_PASSWORD = 'root'
+    process.env.DB_FILENAME = ':memory:'
+
+    await new Config().load()
+
     database = await new Database().connection('mongo').connect()
 
     database.buildTable('products')
 
-    await database.createTable('products', () => ({
-      name: { type: String, required: true },
-      quantity: { type: Number, required: false },
-    }))
+    await database.createTable('products', (tableBuilder: TableBuilder) => {
+      tableBuilder.string('name').notNullable()
+      tableBuilder.integer('quantity').nullable().defaultTo(0)
+    })
 
-    await database.createTable('product_details', () => ({
-      detail: { type: String, required: true },
-      productId: { type: String, required: true },
-      product: { type: Schema.Types.ObjectId, required: true, ref: 'products' },
-    }))
+    await database.createTable('product_details', (tableBuilder: TableBuilder) => {
+      tableBuilder.string('detail').notNullable()
+      tableBuilder.string('productId').notNullable()
+      tableBuilder.string('product').notNullable().references('_id').inTable('products')
+    })
   })
 
   it('should insert new products to the database', async () => {
@@ -301,11 +310,14 @@ describe('\n Database Mongo Class', () => {
       { name: 'iPhone 6', quantity: 40 },
     ])
 
-    const increment = await database.buildWhere('_id', ids[1]).increment('quantity', 20)
-    const decrement = await database.buildWhere('_id', ids[2]).decrement('quantity', 20)
+    await database.buildWhere('_id', ids[1]).increment('quantity', 20)
+    await database.buildWhere('_id', ids[2]).decrement('quantity', 20)
 
-    expect(increment[0].quantity).toBe(30)
-    expect(decrement[0].quantity).toBe(0)
+    const increment = await database.buildWhere('_id', ids[1]).find()
+    const decrement = await database.buildWhere('_id', ids[2]).find()
+
+    expect(increment.quantity).toBe(30)
+    expect(decrement.quantity).toBe(0)
   })
 
   it('should be able to get infos from some database column', async () => {
@@ -335,6 +347,7 @@ describe('\n Database Mongo Class', () => {
 
     const iphones = await database
       .buildTable('products')
+      .buildSelect('name', 'quantity')
       .buildGroupBy('name', 'quantity')
       .buildOrderBy('quantity', 'desc')
       .buildHaving('quantity', '<=', 40)
@@ -342,11 +355,11 @@ describe('\n Database Mongo Class', () => {
 
     expect(iphones.length).toBe(6)
 
-    expect(iphones[0].name).toBe('iPhone 1')
-    expect(iphones[0].quantity).toBe(-40)
+    expect(iphones[0].name).toBe('iPhone 6')
+    expect(iphones[0].quantity).toBe(40)
 
-    expect(iphones[5].name).toBe('iPhone 6')
-    expect(iphones[5].quantity).toBe(40)
+    expect(iphones[5].name).toBe('iPhone 1')
+    expect(iphones[5].quantity).toBe(-40)
   })
 
   afterEach(async () => {

@@ -15,12 +15,12 @@ import { PostgresDriverConfigs } from './PostgresDriver'
 import { DriverContract } from '../Contracts/DriverContract'
 import { ClientContract } from '../Contracts/ClientContract'
 import { TransactionContract } from '../Contracts/TransactionContract'
-import { ClientSession } from 'mongoose'
 
 export class MongoDriver implements DriverContract {
   private client: ClientContract
 
   constructor(connection: string, configs: PostgresDriverConfigs = {}) {
+    // eslint-disable-next-line new-cap
     this.client = new Clients.mongoose(connection, configs)
   }
 
@@ -43,6 +43,7 @@ export class MongoDriver implements DriverContract {
   async beginTransaction(): Promise<TransactionContract> {
     const { client, configs, session } = await this.client.beginTransaction()
 
+    // eslint-disable-next-line new-cap
     return new Transaction(new Clients.mongoose(client, configs, session))
   }
 
@@ -58,7 +59,10 @@ export class MongoDriver implements DriverContract {
     await this.client.dropDatabase(databaseName)
   }
 
-  async createTable(tableName: string, callback: (tableBuilder: any) => void): Promise<void> {
+  async createTable(
+    tableName: string,
+    callback: (tableBuilder: any) => void,
+  ): Promise<void> {
     await this.client.createTable(tableName, callback)
   }
 
@@ -126,7 +130,11 @@ export class MongoDriver implements DriverContract {
     return this.client.min(column)
   }
 
-  async paginate(page: number, limit: number, resourceUrl = '/api'): Promise<PaginatedResponse<any>> {
+  async paginate(
+    page: number,
+    limit: number,
+    resourceUrl = '/api',
+  ): Promise<PaginatedResponse<any>> {
     return this.client.paginate(page, limit, resourceUrl)
   }
 
@@ -216,13 +224,16 @@ export class MongoDriver implements DriverContract {
     return this
   }
 
-  buildOrWhere(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract {
     this.client.buildOrWhere(statement, value)
 
     return this
   }
 
-  buildOrderBy(column: string, direction?: "asc" | "desc"): DriverContract {
+  buildOrderBy(column: string, direction?: 'asc' | 'desc'): DriverContract {
     this.client.buildOrderBy(column, direction)
 
     return this
@@ -246,19 +257,28 @@ export class MongoDriver implements DriverContract {
     return this
   }
 
-  buildWhere(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract {
     this.client.buildWhere(statement, value)
 
     return this
   }
 
-  buildWhereLike(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildWhereLike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract {
     this.client.buildWhereLike(statement, value)
 
     return this
   }
 
-  buildWhereILike(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildWhereILike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract {
     this.client.buildWhereILike(statement, value)
 
     return this
@@ -282,7 +302,10 @@ export class MongoDriver implements DriverContract {
     return this
   }
 
-  buildWhereNot(statement: string | Record<string, any>, value?: any): DriverContract {
+  buildWhereNot(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract {
     this.client.buildWhereNot(statement, value)
 
     return this

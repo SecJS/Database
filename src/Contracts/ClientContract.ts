@@ -7,7 +7,6 @@
  * file that was distributed with this source code.
  */
 
-import { Knex } from 'knex'
 import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
 
@@ -94,7 +93,10 @@ export interface ClientContract {
    * @param callback The callback function with tableBuilder inside
    *
    */
-  createTable(tableName: string, callback: (tableBuilder?: any) => any): Promise<void>
+  createTable(
+    tableName: string,
+    callback: (tableBuilder?: any) => any,
+  ): Promise<void>
 
   /**
    * DropTable method
@@ -242,7 +244,11 @@ export interface ClientContract {
    * @param resourceUrl The resourceUrl from the request to make the links
    *
    */
-  paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>>
+  paginate(
+    page: number,
+    limit: number,
+    resourceUrl?: string,
+  ): Promise<PaginatedResponse<any>>
 
   /**
    * Count method
@@ -325,7 +331,7 @@ export interface ClientContract {
    * @param value The value
    *
    */
-  increment(column: string, value: number)
+  increment(column: string, value: number): Promise<void>
 
   /**
    * Decrement method
@@ -336,7 +342,7 @@ export interface ClientContract {
    * @param value The value
    *
    */
-  decrement(column: string, value: number)
+  decrement(column: string, value: number): Promise<void>
 
   /**
    * Pluck method
@@ -373,7 +379,10 @@ export interface ClientContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhere(statement: string | Record<string, any>, value?: any): ClientContract
+  buildWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): ClientContract
 
   /**
    * BuildWhereLike method
@@ -382,7 +391,10 @@ export interface ClientContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereLike(statement: string | Record<string, any>, value?: any): ClientContract
+  buildWhereLike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): ClientContract
 
   /**
    * BuildWhereILike method
@@ -391,7 +403,10 @@ export interface ClientContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereILike(statement: string | Record<string, any>, value?: any): ClientContract
+  buildWhereILike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): ClientContract
 
   /**
    * BuildOrWhere method
@@ -400,7 +415,10 @@ export interface ClientContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildOrWhere(statement: string | Record<string, any>, value?: any): ClientContract
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): ClientContract
 
   /**
    * BuildWhereNot method
@@ -409,7 +427,10 @@ export interface ClientContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildWhereNot(statement: string | Record<string, any>, value?: any): ClientContract
+  buildWhereNot(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): ClientContract
 
   /**
    * BuildWhereIn method
@@ -497,7 +518,12 @@ export interface ClientContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, column2: string, joinType?: JoinType): ClientContract
+  buildJoin(
+    tableName: string,
+    column1: string,
+    column2: string,
+    joinType?: JoinType,
+  ): ClientContract
 
   /**
    * BuildJoin method
@@ -509,7 +535,13 @@ export interface ClientContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): ClientContract
+  buildJoin(
+    tableName: string,
+    column1: string,
+    operator: string,
+    column2: string,
+    joinType?: JoinType,
+  ): ClientContract
 
   /**
    * BuildJoinRaw method
@@ -594,6 +626,7 @@ export interface ClientContract {
 
 interface ClientConstructor {
   new (client: any): ClientContract
+
   new (connection: string, configs?: any): ClientContract
 }
 

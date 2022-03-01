@@ -7,6 +7,10 @@
  * file that was distributed with this source code.
  */
 
+import {
+  InternalServerException,
+  NotImplementedException,
+} from '@secjs/exceptions'
 import { Config } from '@secjs/config'
 import { Drivers } from './Drivers/Drivers'
 import { JoinType } from './Contracts/JoinType'
@@ -14,7 +18,6 @@ import { PaginatedResponse } from '@secjs/contracts'
 import { DriverContract } from './Contracts/DriverContract'
 import { DatabaseContract } from './Contracts/DatabaseContract'
 import { TransactionContract } from './Contracts/TransactionContract'
-import { InternalServerException, NotImplementedException } from '@secjs/exceptions'
 
 export class Database implements DatabaseContract {
   private runtimeConfig: any
@@ -36,9 +39,11 @@ export class Database implements DatabaseContract {
   }
 
   private createDriverInstance(connectionName?: string) {
-    connectionName = connectionName ? connectionName : Config.get('database.default')
+    connectionName = connectionName || Config.get('database.default')
 
-    const connectionConfig = Config.get(`database.connections.${connectionName}`)
+    const connectionConfig = Config.get(
+      `database.connections.${connectionName}`,
+    )
 
     if (!connectionConfig) {
       throw new NotImplementedException(
@@ -54,7 +59,10 @@ export class Database implements DatabaseContract {
 
     this.connectionName = connectionName
 
-    return new Drivers[connectionConfig.driver](connectionName, this.runtimeConfig)
+    return new Drivers[connectionConfig.driver](
+      connectionName,
+      this.runtimeConfig,
+    )
   }
 
   constructor(runtimeConfig: any = {}) {
@@ -92,7 +100,9 @@ export class Database implements DatabaseContract {
   }
 
   async clone(): Promise<DatabaseContract> {
-    const database: any = await new Database().connection(this.connectionName).connect()
+    const database: any = await new Database()
+      .connection(this.connectionName)
+      .connect()
 
     database.setQueryBuilder(this.cloneQuery())
 
@@ -103,7 +113,9 @@ export class Database implements DatabaseContract {
     return this.driver.beginTransaction()
   }
 
-  async transaction<T = any>(callback: (trx: T) => Promise<void>): Promise<void> {
+  async transaction<T = any>(
+    callback: (trx: T) => Promise<void>,
+  ): Promise<void> {
     return this.driver.transaction(callback)
   }
 
@@ -115,7 +127,10 @@ export class Database implements DatabaseContract {
     await this.driver.dropDatabase(databaseName)
   }
 
-  async createTable(tableName: string, callback: (tableBuilder: any) => void): Promise<void> {
+  async createTable(
+    tableName: string,
+    callback: (tableBuilder: any) => void,
+  ): Promise<void> {
     await this.driver.createTable(tableName, callback)
   }
 
@@ -163,7 +178,11 @@ export class Database implements DatabaseContract {
     return this.driver.forPage(page, limit)
   }
 
-  async paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>> {
+  async paginate(
+    page: number,
+    limit: number,
+    resourceUrl?: string,
+  ): Promise<PaginatedResponse<any>> {
     return this.driver.paginate(page, limit, resourceUrl)
   }
 
@@ -231,31 +250,46 @@ export class Database implements DatabaseContract {
     return this
   }
 
-  buildWhere(statement: string | Record<string, any>, value?: any): DatabaseContract {
+  buildWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract {
     this.driver.buildWhere(statement, value)
 
     return this
   }
 
-  buildWhereLike(statement: string | Record<string, any>, value?: any): DatabaseContract {
+  buildWhereLike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract {
     this.driver.buildWhereLike(statement, value)
 
     return this
   }
 
-  buildWhereILike(statement: string | Record<string, any>, value?: any): DatabaseContract {
+  buildWhereILike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract {
     this.driver.buildWhereILike(statement, value)
 
     return this
   }
 
-  buildOrWhere(statement: string | Record<string, any>, value?: any): DatabaseContract {
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract {
     this.driver.buildOrWhere(statement, value)
 
     return this
   }
 
-  buildWhereNot(statement: string | Record<string, any>, value?: any): DatabaseContract {
+  buildWhereNot(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract {
     this.driver.buildWhereNot(statement, value)
 
     return this
@@ -303,7 +337,10 @@ export class Database implements DatabaseContract {
     return this
   }
 
-  buildWhereNotBetween(columnName: string, values: [any, any]): DatabaseContract {
+  buildWhereNotBetween(
+    columnName: string,
+    values: [any, any],
+  ): DatabaseContract {
     this.driver.buildWhereNotBetween(columnName, values)
 
     return this
@@ -315,7 +352,13 @@ export class Database implements DatabaseContract {
     return this
   }
 
-  buildJoin(tableName: string, column1: string, operator: string, column2?: string, joinType?: JoinType): DatabaseContract {
+  buildJoin(
+    tableName: string,
+    column1: string,
+    operator: string,
+    column2?: string,
+    joinType?: JoinType,
+  ): DatabaseContract {
     this.driver.buildJoin(tableName, column1, operator, column2, joinType)
 
     return this

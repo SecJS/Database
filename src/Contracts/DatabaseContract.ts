@@ -7,7 +7,6 @@
  * file that was distributed with this source code.
  */
 
-import { Knex } from 'knex'
 import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
 import { TransactionContract } from './TransactionContract'
@@ -105,7 +104,10 @@ export interface DatabaseContract {
    * @param callback The callback function with tableBuilder inside
    *
    */
-  createTable(tableName: string, callback: (tableBuilder?: any) => any): Promise<void>
+  createTable(
+    tableName: string,
+    callback: (tableBuilder?: any) => any,
+  ): Promise<void>
 
   /**
    * DropTable method
@@ -227,7 +229,11 @@ export interface DatabaseContract {
    * @param resourceUrl The resourceUrl from the request to make the links
    *
    */
-  paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>>
+  paginate(
+    page: number,
+    limit: number,
+    resourceUrl?: string,
+  ): Promise<PaginatedResponse<any>>
 
   /**
    * Count method
@@ -310,7 +316,7 @@ export interface DatabaseContract {
    * @param value The value
    *
    */
-  increment(column: string, value: number)
+  increment(column: string, value: number): Promise<void>
 
   /**
    * Decrement method
@@ -321,7 +327,7 @@ export interface DatabaseContract {
    * @param value The value
    *
    */
-  decrement(column: string, value: number)
+  decrement(column: string, value: number): Promise<void>
 
   /**
    * Pluck method
@@ -374,7 +380,10 @@ export interface DatabaseContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhere(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract
 
   /**
    * BuildWhereLike method
@@ -383,7 +392,10 @@ export interface DatabaseContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereLike(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildWhereLike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract
 
   /**
    * BuildWhereILike method
@@ -392,7 +404,10 @@ export interface DatabaseContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereILike(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildWhereILike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract
 
   /**
    * BuildOrWhere method
@@ -401,7 +416,10 @@ export interface DatabaseContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildOrWhere(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract
 
   /**
    * BuildWhereNot method
@@ -410,7 +428,10 @@ export interface DatabaseContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildWhereNot(statement: string | Record<string, any>, value?: any): DatabaseContract
+  buildWhereNot(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DatabaseContract
 
   /**
    * BuildWhereIn method
@@ -498,7 +519,12 @@ export interface DatabaseContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, column2: string, joinType?: JoinType): DatabaseContract
+  buildJoin(
+    tableName: string,
+    column1: string,
+    column2: string,
+    joinType?: JoinType,
+  ): DatabaseContract
 
   /**
    * BuildJoin method
@@ -510,7 +536,13 @@ export interface DatabaseContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): DatabaseContract
+  buildJoin(
+    tableName: string,
+    column1: string,
+    operator: string,
+    column2: string,
+    joinType?: JoinType,
+  ): DatabaseContract
 
   /**
    * BuildJoinRaw method

@@ -83,7 +83,10 @@ export interface DriverContract {
    * @param callback The callback function with tableBuilder inside
    *
    */
-  createTable(tableName: string, callback: (tableBuilder: Knex.CreateTableBuilder) => void): Promise<void>
+  createTable(
+    tableName: string,
+    callback: (tableBuilder: Knex.CreateTableBuilder) => void,
+  ): Promise<void>
 
   /**
    * DropTable method
@@ -143,7 +146,10 @@ export interface DriverContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhere(statement: string | Record<string, any>, value?: any): DriverContract
+  buildWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract
 
   /**
    * BuildWhereLike method
@@ -152,7 +158,10 @@ export interface DriverContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereLike(statement: string | Record<string, any>, value?: any): DriverContract
+  buildWhereLike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract
 
   /**
    * BuildWhereILike method
@@ -161,7 +170,10 @@ export interface DriverContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereILike(statement: string | Record<string, any>, value?: any): DriverContract
+  buildWhereILike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract
 
   /**
    * BuildOrWhere method
@@ -170,7 +182,10 @@ export interface DriverContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildOrWhere(statement: string | Record<string, any>, value?: any): DriverContract
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract
 
   /**
    * BuildWhereNot method
@@ -179,7 +194,10 @@ export interface DriverContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildWhereNot(statement: string | Record<string, any>, value?: any): DriverContract
+  buildWhereNot(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract
 
   /**
    * BuildWhereIn method
@@ -267,7 +285,12 @@ export interface DriverContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, column2: string, joinType?: JoinType): DriverContract
+  buildJoin(
+    tableName: string,
+    column1: string,
+    column2: string,
+    joinType?: JoinType,
+  ): DriverContract
 
   /**
    * BuildJoin method
@@ -279,7 +302,13 @@ export interface DriverContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): DriverContract
+  buildJoin(
+    tableName: string,
+    column1: string,
+    operator: string,
+    column2: string,
+    joinType?: JoinType,
+  ): DriverContract
 
   /**
    * BuildJoinRaw method
@@ -446,7 +475,11 @@ export interface DriverContract {
    * @param resourceUrl The resourceUrl from the request to make the links
    *
    */
-  paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>>
+  paginate(
+    page: number,
+    limit: number,
+    resourceUrl?: string,
+  ): Promise<PaginatedResponse<any>>
 
   /**
    * Count method
@@ -529,7 +562,7 @@ export interface DriverContract {
    * @param value The value
    *
    */
-  increment(column: string, value: number)
+  increment(column: string, value: number): Promise<void>
 
   /**
    * Decrement method
@@ -540,7 +573,7 @@ export interface DriverContract {
    * @param value The value
    *
    */
-  decrement(column: string, value: number)
+  decrement(column: string, value: number): Promise<void>
 
   /**
    * Pluck method

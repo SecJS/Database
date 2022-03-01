@@ -17,6 +17,7 @@ import {
 import { ObjectID } from 'bson'
 import { Is, paginate } from '@secjs/utils'
 import { PaginatedResponse } from '@secjs/contracts'
+import { TableBuilder } from '../Builders/TableBuilder'
 import { InternalServerException } from '@secjs/exceptions'
 import { ClientContract } from '../Contracts/ClientContract'
 import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
@@ -33,9 +34,25 @@ export class MongooseClient implements ClientContract {
   private readonly connection: string
 
   // This is important only for update and delete queries
-  private where = {}
+  private _where = {}
   // This is important to be global in class to manipulate data before some operations
-  private pipeline = []
+  private _pipeline = []
+
+  private get where() {
+    const where = { ...this._where }
+
+    this._where = {}
+
+    return where
+  }
+
+  private get pipeline() {
+    const pipeline = [...this._pipeline]
+
+    this._pipeline = []
+
+    return pipeline
+  }
 
   constructor(
     client: any | string,
@@ -67,6 +84,8 @@ export class MongooseClient implements ClientContract {
   }
 
   async rollback(): Promise<any | any[]> {
+    if (!this.session) return
+
     const doc = await this.session.abortTransaction()
     await this.session.endSession()
 
@@ -93,7 +112,7 @@ export class MongooseClient implements ClientContract {
   cloneQuery(): any {
     return {
       session: this.session,
-      pipeline: this.pipeline,
+      pipeline: this._pipeline,
       defaultTable: this.defaultTable,
     }
   }
@@ -132,8 +151,50 @@ export class MongooseClient implements ClientContract {
     await client.close()
   }
 
-  async createTable(tableName: string, callback: () => any): Promise<void> {
-    const schema = new Schema(callback())
+  async createTable(
+    tableName: string,
+    callback: (tableBuilder: TableBuilder) => any,
+  ): Promise<void> {
+    // Type dictionary for mongoose schema
+    const typeDictionary = {
+      string: String,
+      integer: Number,
+      date: Date,
+      increments: Schema.Types.ObjectId,
+      boolean: Boolean,
+    }
+
+    const tableBuilder = new TableBuilder()
+
+    // Execute callback to generate columns
+    callback(tableBuilder)
+
+    const transpiledObject = {}
+
+    tableBuilder.toJSON().forEach(column => {
+      transpiledObject[column.columnName] = {
+        type: typeDictionary[column.columnType],
+        index: column.primary,
+        unique: column.unique,
+        default: column.defaultTo,
+        required: !column.nullable,
+      }
+
+      if (column.type === 'enum') {
+        transpiledObject[column.columnName].enum = column.enumValues
+      } else {
+        transpiledObject[column.columnName].maxLength = column.columnLength
+      }
+
+      if (column.references) {
+        transpiledObject[column.columnName].type = typeDictionary.increments
+        transpiledObject[
+          column.columnName
+        ].ref = `${column.references.inTable}.${column.references.columnName}`
+      }
+    })
+
+    const schema = new Schema(transpiledObject)
 
     await this.client.model(tableName, schema).createCollection()
   }
@@ -158,7 +219,8 @@ export class MongooseClient implements ClientContract {
 
   setQueryBuilder(query: any): void {
     this.session = query.session
-    this.pipeline = query.pipeline
+    this._where = query._where
+    this._pipeline = query._pipeline
     this.defaultTable = query.defaultTable
 
     if (this.defaultTable) this.queryBuilder = this.query()
@@ -207,61 +269,77 @@ export class MongooseClient implements ClientContract {
   async insertAndGet(values: any | any[]): Promise<any[]> {
     const arrayOfId = (await this.insert(values)).map(id => new ObjectID(id))
 
-    return this.query()
+    return this.queryBuilder
       .find({ _id: { $in: arrayOfId } }, { session: this.session })
       .toArray()
   }
 
   async update(key: any | string, value?: any): Promise<string[]> {
     if (typeof key === 'object') {
-      const { modifiedCount } = await this.query().updateMany(
-        this.where,
+      const { modifiedCount } = await this.queryBuilder.updateMany(
+        this._where,
         { $set: key },
         { upsert: false },
       )
 
-      if (!modifiedCount) return []
+      if (!modifiedCount) {
+        this._where = {}
 
-      const data = await this.query().find(this.where).toArray()
+        return []
+      }
+
+      const data = await this.queryBuilder.find(this.where).toArray()
 
       return data.map(model => model._id.toString())
     }
 
-    const { modifiedCount } = await this.query().updateMany(
-      this.where,
+    const { modifiedCount } = await this.queryBuilder.updateMany(
+      this._where,
       { $set: { [key]: value } },
       { upsert: false },
     )
 
-    if (!modifiedCount) return []
+    if (!modifiedCount) {
+      this._where = {}
 
-    const data = await this.query().find(this.where).toArray()
+      return []
+    }
+
+    const data = await this.queryBuilder.find(this.where).toArray()
 
     return data.map(model => model._id.toString())
   }
 
   async updateAndGet(key: any | string, value?: any): Promise<any[]> {
     if (typeof key === 'object') {
-      const { modifiedCount } = await this.query().updateMany(
-        this.where,
+      const { modifiedCount } = await this.queryBuilder.updateMany(
+        this._where,
         { $set: key },
         { upsert: false },
       )
 
-      if (!modifiedCount) return []
+      if (!modifiedCount) {
+        this._where = {}
 
-      return this.query().find(this.where).toArray()
+        return []
+      }
+
+      return this.queryBuilder.find(this.where).toArray()
     }
 
-    const { modifiedCount } = await this.query().updateMany(
-      this.where,
+    const { modifiedCount } = await this.queryBuilder.updateMany(
+      this._where,
       { $set: { [key]: value } },
       { upsert: false },
     )
 
-    if (!modifiedCount) return []
+    if (!modifiedCount) {
+      this._where = {}
 
-    return this.query().find(this.where).toArray()
+      return []
+    }
+
+    return this.queryBuilder.find(this.where).toArray()
   }
 
   async delete(): Promise<number> {
@@ -284,7 +362,6 @@ export class MongooseClient implements ClientContract {
     resourceUrl?: string,
   ): Promise<PaginatedResponse<any>> {
     const data = await this.buildSkip(page).buildLimit(limit).findMany()
-
     const count = await this.count()
 
     return paginate(data, count, { page, limit, resourceUrl })
@@ -292,13 +369,14 @@ export class MongooseClient implements ClientContract {
 
   async count(column = '*'): Promise<number> {
     const pipeline = []
+    this._pipeline = []
 
     if (column !== '*') {
       const match = {
         $match: {},
       }
 
-      if (!Is.Empty(this.where)) {
+      if (!Is.Empty(this._where)) {
         match.$match = { ...this.where, [column]: { $ne: null } }
       } else {
         match.$match = { [column]: { $ne: null } }
@@ -310,20 +388,23 @@ export class MongooseClient implements ClientContract {
     pipeline.push({ $group: { _id: null, count: { $sum: 1 } } })
     pipeline.push({ $project: { _id: 0, count: 1 } })
 
-    const [{ count }] = await this.queryBuilder.aggregate(pipeline).toArray()
+    const [{ count }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
 
     return count
   }
 
   async countDistinct(column = '*'): Promise<number> {
     const pipeline = []
+    this._pipeline = []
 
     if (column !== '*') {
       const match = {
         $match: {},
       }
 
-      if (!Is.Empty(this.where)) {
+      if (!Is.Empty(this._where)) {
         match.$match = { ...this.where, [column]: { $ne: null } }
       } else {
         match.$match = { [column]: { $ne: null } }
@@ -335,127 +416,143 @@ export class MongooseClient implements ClientContract {
     pipeline.push({ $group: { _id: null, set: { $addToSet: `$${column}` } } })
     pipeline.push({ $project: { _id: 0, count: { $size: `$set` } } })
 
-    const [{ count }] = await this.queryBuilder.aggregate(pipeline).toArray()
+    const [{ count }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
 
     return count
   }
 
   async min(column: string): Promise<number> {
     const pipeline = []
+    this._pipeline = []
 
-    if (!Is.Empty(this.where)) {
+    if (!Is.Empty(this._where)) {
       pipeline.push(this.where)
     }
 
     pipeline.push({ $group: { _id: null, min: { $min: `$${column}` } } })
     pipeline.push({ $project: { _id: 0, min: 1 } })
 
-    const [{ min }] = await this.queryBuilder.aggregate(pipeline).toArray()
+    const [{ min }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
 
     return min
   }
 
   async max(column: string): Promise<number> {
     const pipeline = []
+    this._pipeline = []
 
-    if (!Is.Empty(this.where)) {
+    if (!Is.Empty(this._where)) {
       pipeline.push(this.where)
     }
 
     pipeline.push({ $group: { _id: null, max: { $max: `$${column}` } } })
     pipeline.push({ $project: { _id: 0, max: 1 } })
 
-    const [{ max }] = await this.queryBuilder.aggregate(pipeline).toArray()
+    const [{ max }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
 
     return max
   }
 
   async sum(column: string): Promise<number> {
     const pipeline = []
+    this._pipeline = []
 
-    if (!Is.Empty(this.where)) {
+    if (!Is.Empty(this._where)) {
       pipeline.push(this.where)
     }
 
     pipeline.push({ $group: { _id: null, sum: { $sum: `$${column}` } } })
     pipeline.push({ $project: { _id: 0, sum: 1 } })
 
-    const [{ sum }] = await this.queryBuilder.aggregate(pipeline).toArray()
+    const [{ sum }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
 
     return sum
   }
 
   async sumDistinct(column: string): Promise<number> {
     const pipeline = []
+    this._pipeline = []
 
-    if (!Is.Empty(this.where)) {
+    if (!Is.Empty(this._where)) {
       pipeline.push(this.where)
     }
 
     pipeline.push({ $group: { _id: null, set: { $addToSet: `$${column}` } } })
     pipeline.push({ $project: { _id: 0, sum: { $sum: '$set' } } })
 
-    const [{ sum }] = await this.queryBuilder.aggregate(pipeline).toArray()
+    const [{ sum }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
 
     return sum
   }
 
   async avg(column: string): Promise<number> {
     const pipeline = []
+    this._pipeline = []
 
-    if (!Is.Empty(this.where)) {
+    if (!Is.Empty(this._where)) {
       pipeline.push(this.where)
     }
 
     pipeline.push({ $group: { _id: null, avg: { $avg: `$${column}` } } })
     pipeline.push({ $project: { _id: 0, avg: 1 } })
 
-    const [{ avg }] = await this.queryBuilder.aggregate(pipeline).toArray()
+    const [{ avg }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
 
     return avg
   }
 
   async avgDistinct(column: string): Promise<number> {
     const pipeline = []
+    this._pipeline = []
 
-    if (!Is.Empty(this.where)) {
+    if (!Is.Empty(this._where)) {
       pipeline.push(this.where)
     }
 
     pipeline.push({ $group: { _id: null, set: { $addToSet: `$${column}` } } })
     pipeline.push({ $project: { _id: 0, avg: { $avg: '$set' } } })
 
-    const [{ avg }] = await this.queryBuilder.aggregate(pipeline).toArray()
+    const [{ avg }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
 
     return avg
   }
 
-  async increment(column: string, value: number) {
-    const { modifiedCount } = await this.query().updateMany(
+  async increment(column: string, value: number): Promise<void> {
+    this._pipeline = []
+
+    await this.queryBuilder.updateMany(
       this.where,
       { $inc: { [column]: value } },
-      { upsert: false },
+      { session: this.session, upsert: false },
     )
-
-    if (!modifiedCount) return []
-
-    return this.query().find(this.where).toArray()
   }
 
-  async decrement(column: string, value: number) {
-    const { modifiedCount } = await this.query().updateMany(
+  async decrement(column: string, value: number): Promise<void> {
+    this._pipeline = []
+
+    await this.queryBuilder.updateMany(
       this.where,
       { $inc: { [column]: -value } },
-      { upsert: false },
+      { session: this.session, upsert: false },
     )
-
-    if (!modifiedCount) return []
-
-    return this.query().find(this.where).toArray()
   }
 
   async pluck(column: string): Promise<any[]> {
-    this.pipeline.push({ $project: { _id: 0, [column]: 1 } })
+    this._pipeline.push({ $project: { _id: 0, [column]: 1 } })
 
     const data = await this.findMany()
 
@@ -477,8 +574,12 @@ export class MongooseClient implements ClientContract {
     await this.client.close()
 
     this.client = null
+    this._where = {}
+    this._pipeline = []
     this.isConnected = false
     this.defaultTable = null
+
+    await this.rollback()
   }
 
   buildTable(tableName: string): ClientContract {
@@ -498,7 +599,7 @@ export class MongooseClient implements ClientContract {
       { $project: {} },
     )
 
-    this.pipeline.push(project)
+    this._pipeline.push(project)
 
     return this
   }
@@ -512,18 +613,18 @@ export class MongooseClient implements ClientContract {
         value = new ObjectID(value)
       }
 
-      this.where[statement] = value
-      this.pipeline.push({ $match: this.where })
+      this._where[statement] = value
+      this._pipeline.push({ $match: this._where })
 
       return this
     }
 
-    this.where = {
-      ...this.where,
+    this._where = {
+      ...this._where,
       ...statement,
     }
 
-    this.pipeline.push({ $match: this.where })
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
@@ -533,14 +634,14 @@ export class MongooseClient implements ClientContract {
     value?: any,
   ): ClientContract {
     if (typeof statement === 'string') {
-      this.where[statement] = { $regex: value }
-      this.pipeline.push({ $match: this.where })
+      this._where[statement] = { $regex: value }
+      this._pipeline.push({ $match: this._where })
 
       return this
     }
 
-    this.where = {
-      ...this.where,
+    this._where = {
+      ...this._where,
       ...statement,
     }
 
@@ -552,18 +653,18 @@ export class MongooseClient implements ClientContract {
     value?: any,
   ): ClientContract {
     if (typeof statement === 'string') {
-      this.where[statement] = { $regex: value, $options: 'i' }
-      this.pipeline.push({ $match: this.where })
+      this._where[statement] = { $regex: value, $options: 'i' }
+      this._pipeline.push({ $match: this._where })
 
       return this
     }
 
-    this.where = {
-      ...this.where,
+    this._where = {
+      ...this._where,
       ...statement,
     }
 
-    this.pipeline.push({ $match: this.where })
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
@@ -573,17 +674,17 @@ export class MongooseClient implements ClientContract {
     value?: any,
   ): ClientContract {
     if (typeof statement === 'string') {
-      this.where[statement] = { $or: value }
-      this.pipeline.push({ $match: this.where })
+      this._where[statement] = { $or: value }
+      this._pipeline.push({ $match: this._where })
 
       return this
     }
 
-    this.where = {
-      ...this.where,
+    this._where = {
+      ...this._where,
       ...statement,
     }
-    this.pipeline.push({ $match: this.where })
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
@@ -593,73 +694,73 @@ export class MongooseClient implements ClientContract {
     value?: any,
   ): ClientContract {
     if (typeof statement === 'string') {
-      this.where[statement] = { $not: value }
-      this.pipeline.push({ $match: this.where })
+      this._where[statement] = { $not: value }
+      this._pipeline.push({ $match: this._where })
 
       return this
     }
 
-    this.where = {
-      ...this.where,
+    this._where = {
+      ...this._where,
       ...statement,
     }
-    this.pipeline.push({ $match: this.where })
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereIn(columnName: string, values: any[]): ClientContract {
-    this.where[columnName] = { $in: values }
-    this.pipeline.push({ $match: this.where })
+    this._where[columnName] = { $in: values }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereNotIn(columnName: string, values: any[]): ClientContract {
-    this.where[columnName] = { $nin: values }
-    this.pipeline.push({ $match: this.where })
+    this._where[columnName] = { $nin: values }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereNull(columnName: string): ClientContract {
-    this.where[columnName] = null
-    this.pipeline.push({ $match: this.where })
+    this._where[columnName] = null
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereNotNull(columnName: string): ClientContract {
-    this.where[columnName] = { $ne: null }
-    this.pipeline.push({ $match: this.where })
+    this._where[columnName] = { $ne: null }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereExists(callback: any): ClientContract {
-    this.where[callback] = { $exists: true }
-    this.pipeline.push({ $match: this.where })
+    this._where[callback] = { $exists: true }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereNotExists(callback: any): ClientContract {
-    this.where[callback] = { $exists: false }
-    this.pipeline.push({ $match: this.where })
+    this._where[callback] = { $exists: false }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereBetween(columnName: string, values: [any, any]): ClientContract {
-    this.where[columnName] = { $gte: values[0], $lte: values[1] }
-    this.pipeline.push({ $match: this.where })
+    this._where[columnName] = { $gte: values[0], $lte: values[1] }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereNotBetween(columnName: string, values: [any, any]): ClientContract {
-    this.where[columnName] = { $not: { $gte: values[0], $lte: values[1] } }
-    this.pipeline.push({ $match: this.where })
+    this._where[columnName] = { $not: { $gte: values[0], $lte: values[1] } }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
@@ -697,7 +798,7 @@ export class MongooseClient implements ClientContract {
       localField = localField.split('.')[1]
     }
 
-    this.pipeline.push({
+    this._pipeline.push({
       $lookup: { from: tableName, localField, foreignField, as: tableName },
     })
 
@@ -722,7 +823,7 @@ export class MongooseClient implements ClientContract {
       { $project: {} },
     )
 
-    this.pipeline.push(project)
+    this._pipeline.push(project)
 
     return this
   }
@@ -749,8 +850,8 @@ export class MongooseClient implements ClientContract {
       group.$group._id[column] = `$${column}`
     })
 
-    this.pipeline.push(group)
-    this.pipeline.push({ $replaceRoot: { newRoot: '$_id' } })
+    this._pipeline.push(group)
+    this._pipeline.push({ $replaceRoot: { newRoot: '$_id' } })
 
     return this
   }
@@ -764,7 +865,7 @@ export class MongooseClient implements ClientContract {
   }
 
   buildOrderBy(column: string, direction?: 'asc' | 'desc'): ClientContract {
-    this.pipeline.push({ $sort: { [column]: direction === 'asc' ? -1 : 1 } })
+    this._pipeline.push({ $sort: { [column]: direction === 'asc' ? 1 : -1 } })
 
     return this
   }
@@ -786,20 +887,20 @@ export class MongooseClient implements ClientContract {
       '=': value,
     }
 
-    this.where[column] = operatorDictionary[operator]
-    this.pipeline.push({ $match: this.where })
+    this._where[column] = operatorDictionary[operator]
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildSkip(number: number): ClientContract {
-    this.pipeline.push({ $skip: number })
+    this._pipeline.push({ $skip: number })
 
     return this
   }
 
   buildLimit(number: number): ClientContract {
-    this.pipeline.push({ $limit: number })
+    this._pipeline.push({ $limit: number })
 
     return this
   }
