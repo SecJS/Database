@@ -10,9 +10,9 @@
 import '@secjs/env/src/utils/global'
 import '@secjs/config/src/utils/global'
 
+import { Schema } from 'mongoose'
 import { Database } from '../src/Database'
 import { DatabaseContract } from '../src/Contracts/DatabaseContract'
-import { Schema } from 'mongoose'
 
 describe('\n Database Mongo Class', () => {
   let database: DatabaseContract = null
@@ -23,42 +23,33 @@ describe('\n Database Mongo Class', () => {
     database.buildTable('products')
 
     await database.createTable('products', () => ({
-      name: { type: String, required: true }
+      name: { type: String, required: true },
+      quantity: { type: Number, required: false },
     }))
 
     await database.createTable('product_details', () => ({
       detail: { type: String, required: true },
       productId: { type: String, required: true },
-      product: { type: Schema.Types.ObjectId, required: true, ref: 'products' }
+      product: { type: Schema.Types.ObjectId, required: true, ref: 'products' },
     }))
   })
 
   it('should insert new products to the database', async () => {
-    const idOfProducts = await database.insert([
-      { name: 'iPhone 10'},
-      { name: 'iPhone 11'},
-      { name: 'iPhone 12'}
-    ])
+    const idOfProducts = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
     expect(idOfProducts.length).toBe(3)
   })
 
   it('should get the product from database', async () => {
-    const [idIphone] = await database.insert({ name: 'iPhone 10'})
+    const [idIphone] = await database.insert({ name: 'iPhone 10' })
 
-    const iphone = await database
-      .buildWhere('_id', idIphone)
-      .find()
+    const iphone = await database.buildWhere('_id', idIphone).find()
 
     expect(iphone.name).toBe('iPhone 10')
   })
 
   it('should get all the products from database', async () => {
-    await database.insert([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
+    await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
     const iphones = await database.findMany()
 
@@ -66,11 +57,7 @@ describe('\n Database Mongo Class', () => {
   })
 
   it('should get all the products from database paginated', async () => {
-    await database.insert([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
+    await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
     const paginatedResponse = await database.paginate(0, 2, '/products')
 
@@ -87,11 +74,7 @@ describe('\n Database Mongo Class', () => {
   })
 
   it('should get all the products paginated but without paginated response', async () => {
-    await database.insert([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
+    await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
     const data = await database.forPage(0, 2)
 
@@ -99,25 +82,19 @@ describe('\n Database Mongo Class', () => {
   })
 
   it('should update the product in database', async () => {
-    const [iphone] = await database.insertAndGet({ name: 'iPhone 10'})
+    const [iphone] = await database.insertAndGet({ name: 'iPhone 10' })
 
-    const [iphoneUpdated] = await database
-      .buildWhere('_id', iphone._id)
-      .updateAndGet('name', 'iPhone 11')
+    const [iphoneUpdated] = await database.buildWhere('_id', iphone._id).updateAndGet('name', 'iPhone 11')
 
     expect(iphoneUpdated.name).toBe('iPhone 11')
   })
 
   it('should delete the product in database', async () => {
-    const [iphone] = await database.insertAndGet({ name: 'iPhone 10'})
+    const [iphone] = await database.insertAndGet({ name: 'iPhone 10' })
 
-    await database
-      .buildWhere('_id', iphone._id)
-      .delete()
+    await database.buildWhere('_id', iphone._id).delete()
 
-    const deletedIphone = await database
-      .buildWhere({ _id: iphone._id })
-      .find()
+    const deletedIphone = await database.buildWhere({ _id: iphone._id }).find()
 
     expect(deletedIphone).toBeFalsy()
   })
@@ -125,17 +102,13 @@ describe('\n Database Mongo Class', () => {
   it('should be able to create and drop databases from different instances', async () => {
     await database.createDatabase('new-database')
 
-    const newDb = await new Database()
-      .connection('mongo', { database: 'new-database' })
-      .connect()
+    const newDb = await new Database().connection('mongo', { database: 'new-database' }).connect()
 
     await newDb.createTable('products', () => ({
-      name: { type: String, required: true }
+      name: { type: String, required: true },
     }))
 
-    const [product] = await newDb
-      .buildTable('products')
-      .insertAndGet({ name: 'Product' })
+    const [product] = await newDb.buildTable('products').insertAndGet({ name: 'Product' })
 
     expect(product.name).toBe('Product')
 
@@ -144,14 +117,20 @@ describe('\n Database Mongo Class', () => {
   }, 10000)
 
   it('should be able to join on other related tables', async () => {
-    const iphones = await database.insertAndGet([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
+    const iphones = await database.insertAndGet([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
-    await Promise.all(iphones.map(iphone => database.buildTable('product_details').insert({ detail: '64 GB', product: iphone, productId: iphone._id })))
-    await Promise.all(iphones.map(iphone => database.buildTable('product_details').insert({ detail: 'CPU ARM Arch', product: iphone, productId: iphone._id })))
+    await Promise.all(
+      iphones.map(iphone =>
+        database.buildTable('product_details').insert({ detail: '64 GB', product: iphone, productId: iphone._id }),
+      ),
+    )
+    await Promise.all(
+      iphones.map(iphone =>
+        database
+          .buildTable('product_details')
+          .insert({ detail: 'CPU ARM Arch', product: iphone, productId: iphone._id }),
+      ),
+    )
 
     const iphonesWithDetails = await database
       .buildTable('products')
@@ -170,11 +149,9 @@ describe('\n Database Mongo Class', () => {
       tableBuilder.string('name').notNullable()
     })
 
-    const macbooks = await database.buildTable('products').insertAndGet([
-      { name: 'Macbook 2019' },
-      { name: 'Macbook 2020' },
-      { name: 'Macbook 2021' },
-    ])
+    const macbooks = await database
+      .buildTable('products')
+      .insertAndGet([{ name: 'Macbook 2019' }, { name: 'Macbook 2020' }, { name: 'Macbook 2021' }])
 
     expect(macbooks.length).toBe(3)
     expect(macbooks[0].id).toBe(1)
@@ -207,6 +184,169 @@ describe('\n Database Mongo Class', () => {
     const product = await database.buildWhere('id', products[0].id).find()
 
     expect(product.id).toBe(products[0].id)
+  })
+
+  it('should be able to create database transactions and rollback then', async () => {
+    const trx = await database.beginTransaction()
+
+    const products = await trx.buildTable('products').insertAndGet({ name: 'AirPods 3' })
+
+    expect(products.length).toBe(1)
+
+    await trx.rollback()
+
+    const product = await database.buildTable('products').buildWhere('_id', products[0]._id).find()
+
+    expect(product).toBeFalsy()
+    // db.adminCommand( { setParameter: 1, maxTransactionLockRequestTimeoutMillis: 5000 })
+    // db.createUser({ user: 'root', pwd: 'root', roles: [{ role: 'userAdminAnyDatabase', db: 'admin' }] })
+  })
+
+  it('should be able to use pluck method, that returns the values of specific table column', async () => {
+    await database.buildTable('products').insert([{ name: 'Apple Watch Series 2' }, { name: 'Apple Watch Series 3' }])
+
+    const productsName = await database.pluck('name')
+
+    expect(productsName.length).toBe(2)
+    expect(productsName[0]).toBe('Apple Watch Series 2')
+    expect(productsName[1]).toBe('Apple Watch Series 3')
+  })
+
+  it('should be able to use raw method to make raw queries to database', async () => {
+    await database.buildTable('products').insert([{ name: 'Apple Watch Series 2' }, { name: 'Apple Watch Series 3' }])
+
+    const products = await database.raw('db.collection(??).find().toArray()', ['products'])
+
+    // Only for Mongoose
+    expect(products.length).toBe(2)
+    expect(products[0].name).toBe('Apple Watch Series 2')
+  })
+
+  it('should be able to count and count distinct the database data', async () => {
+    await database
+      .buildTable('products')
+      .insert([
+        { name: null },
+        { name: 'Apple Watch Series 2' },
+        { name: 'Apple Watch Series 2' },
+        { name: 'Apple Watch Series 3' },
+      ])
+
+    const countAll = await database.count('*')
+    const countName = await database.count('name')
+    const countDistinct = await database.countDistinct('name')
+
+    expect(countAll).toBe(4)
+    expect(countName).toBe(3)
+    expect(countDistinct).toBe(2)
+  })
+
+  it('should be able to get the min and max values from some column', async () => {
+    await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: 10 },
+      { name: 'iPhone 3', quantity: 20 },
+      { name: 'iPhone 4', quantity: 30 },
+      { name: 'iPhone 5', quantity: 40 },
+    ])
+
+    const max = await database.max('quantity')
+    const min = await database.min('quantity')
+
+    expect(max).toBe(40)
+    expect(min).toBe(-40)
+  })
+
+  it('should be able to sum and sum distinct the database data', async () => {
+    await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: 10 },
+      { name: 'iPhone 3', quantity: 20 },
+      { name: 'iPhone 4', quantity: 30 },
+      { name: 'iPhone 5', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+    ])
+
+    const qtyTotal = await database.sum('quantity')
+    const qtyTotalDistinct = await database.sumDistinct('quantity')
+
+    expect(qtyTotal).toBe(100)
+    expect(qtyTotalDistinct).toBe(60)
+  })
+
+  it('should be able to get the avg and avg distinct from the database data', async () => {
+    await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: 10 },
+      { name: 'iPhone 3', quantity: 20 },
+      { name: 'iPhone 4', quantity: 30 },
+      { name: 'iPhone 5', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+    ])
+
+    const qtyAvg = await database.avg('quantity')
+    const qtyAvgDistinct = await database.avgDistinct('quantity')
+
+    expect(qtyAvg).toBe(16.666666666666668)
+    expect(qtyAvgDistinct).toBe(12)
+  })
+
+  it('should be able to increment and decrement values from database', async () => {
+    const ids = await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: 10 },
+      { name: 'iPhone 3', quantity: 20 },
+      { name: 'iPhone 4', quantity: 30 },
+      { name: 'iPhone 5', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+    ])
+
+    const increment = await database.buildWhere('_id', ids[1]).increment('quantity', 20)
+    const decrement = await database.buildWhere('_id', ids[2]).decrement('quantity', 20)
+
+    expect(increment[0].quantity).toBe(30)
+    expect(decrement[0].quantity).toBe(0)
+  })
+
+  it('should be able to get infos from some database column', async () => {
+    // WARN
+    // Mongo columnInfo just return default value for all columns because mongo collection is just a document
+
+    const columnInfo = await database.buildTable('products').columnInfo('name')
+
+    expect(columnInfo.defaultValue).toBe('null')
+    expect(columnInfo.type).toBe('any')
+    expect(columnInfo.maxLength).toBe('255')
+    expect(columnInfo.nullable).toBe(true)
+  })
+
+  it('should be able to get data ordered, grouped, with only specific fields selected and using having method', async () => {
+    await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: -30 },
+      { name: 'iPhone 3', quantity: 10 },
+      { name: 'iPhone 4', quantity: 20 },
+      { name: 'iPhone 5', quantity: 30 },
+      { name: 'iPhone 6', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+      { name: 'iPhone 7', quantity: 50 },
+      { name: 'iPhone 8', quantity: 60 },
+    ])
+
+    const iphones = await database
+      .buildTable('products')
+      .buildGroupBy('name', 'quantity')
+      .buildOrderBy('quantity', 'desc')
+      .buildHaving('quantity', '<=', 40)
+      .findMany()
+
+    expect(iphones.length).toBe(6)
+
+    expect(iphones[0].name).toBe('iPhone 1')
+    expect(iphones[0].quantity).toBe(-40)
+
+    expect(iphones[5].name).toBe('iPhone 6')
+    expect(iphones[5].quantity).toBe(40)
   })
 
   afterEach(async () => {

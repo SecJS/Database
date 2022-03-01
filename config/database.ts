@@ -64,13 +64,21 @@ export default {
 
     mongo: {
       driver: 'mongo',
-      protocol: 'mongo',
+      protocol: 'mongodb',
       url: Env('DB_URL', ''),
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 27017),
       database: Env('DB_DATABASE', 'mongodb'),
-      user: Env('DB_USERNAME', 'root'),
+      user: Env('DB_USERNAME', ''),
       password: Env('DB_PASSWORD', ''),
+      options: {
+        w: 'majority',
+        replicaSet: 'rs',
+        retryWrites: true,
+        authSource: 'admin',
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }
     },
 
   },

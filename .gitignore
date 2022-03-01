@@ -126,6 +126,7 @@ out
 *.js
 *.d.ts
 dist
+data
 build
 
 .DS_Store

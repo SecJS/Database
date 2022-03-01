@@ -28,7 +28,7 @@
     "@secjs/contracts": "1.2.1",
     "@secjs/env": "1.2.8",
     "@secjs/exceptions": "1.0.4",
-    "@secjs/utils": "1.7.0",
+    "@secjs/utils": "1.7.2",
     "@types/jest": "27.0.1",
     "@types/knex": "0.16.1",
     "@types/mime-types": "2.1.1",

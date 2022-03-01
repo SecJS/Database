@@ -67,7 +67,7 @@ export class KnexClient implements ClientContract {
           'countDistinct',
           'increment',
           'decrement',
-          'truncate'
+          'truncate',
         ]
 
         if (protectedMethods.includes(propertyKey)) {
@@ -75,7 +75,7 @@ export class KnexClient implements ClientContract {
         }
 
         return target[propertyKey]
-      }
+      },
     }
 
     return new Proxy<Knex.QueryBuilder>(query, handler)
@@ -83,7 +83,9 @@ export class KnexClient implements ClientContract {
 
   async commit(value?: any): Promise<any> {
     if (!this.client.isTransaction) {
-      throw new InternalServerException('Client is not a transaction to be committed')
+      throw new InternalServerException(
+        'Client is not a transaction to be committed',
+      )
     }
 
     const client: any = this.client
@@ -97,7 +99,9 @@ export class KnexClient implements ClientContract {
 
   async rollback(error?: any): Promise<any> {
     if (!this.client.isTransaction) {
-      throw new InternalServerException('Client is not a transaction to be rollback')
+      throw new InternalServerException(
+        'Client is not a transaction to be rollback',
+      )
     }
 
     const client: any = this.client
@@ -116,7 +120,11 @@ export class KnexClient implements ClientContract {
   async connect(client: string): Promise<void> {
     if (this.isConnected) return
 
-    this.client = await ConnectionResolver.knex(client, this.connection, this.configs)
+    this.client = await ConnectionResolver.knex(
+      client,
+      this.connection,
+      this.configs,
+    )
     this.queryBuilder = this.query()
 
     this.isConnected = true
@@ -130,7 +138,9 @@ export class KnexClient implements ClientContract {
     return this.client.transaction()
   }
 
-  async transaction(callback: (trx: Knex.Transaction) => Promise<void>): Promise<void> {
+  async transaction(
+    callback: (trx: Knex.Transaction) => Promise<void>,
+  ): Promise<void> {
     await this.client.transaction(callback)
   }
 
@@ -142,7 +152,10 @@ export class KnexClient implements ClientContract {
     await this.client.raw('DROP DATABASE IF EXISTS ??', databaseName)
   }
 
-  async createTable(tableName: string, callback: (tableBuilder: any) => void): Promise<void> {
+  async createTable(
+    tableName: string,
+    callback: (tableBuilder: any) => void,
+  ): Promise<void> {
     const existsTable = await this.client.schema.hasTable(tableName)
 
     if (!existsTable) await this.client.schema.createTable(tableName, callback)
@@ -231,11 +244,12 @@ export class KnexClient implements ClientContract {
     return this.queryBuilder.min(column)
   }
 
-  async paginate(page: number, limit: number, resourceUrl = '/api'): Promise<PaginatedResponse<any>> {
-    const data = await this
-      .buildSkip(page)
-      .buildLimit(limit)
-      .findMany()
+  async paginate(
+    page: number,
+    limit: number,
+    resourceUrl = '/api',
+  ): Promise<PaginatedResponse<any>> {
+    const data = await this.buildSkip(page).buildLimit(limit).findMany()
 
     const count = await this.count()
 
@@ -315,8 +329,19 @@ export class KnexClient implements ClientContract {
     column2?: string,
     joinType = 'join',
   ): KnexClient {
-    if (operator && !column2) this.queryBuilder = this.queryBuilder[joinType](tableName, column1, operator)
-    if (tableName && column2) this.queryBuilder = this.queryBuilder[joinType](tableName, column1, operator, column2)
+    if (operator && !column2)
+      this.queryBuilder = this.queryBuilder[joinType](
+        tableName,
+        column1,
+        operator,
+      )
+    if (tableName && column2)
+      this.queryBuilder = this.queryBuilder[joinType](
+        tableName,
+        column1,
+        operator,
+        column2,
+      )
 
     return this
   }
@@ -339,7 +364,10 @@ export class KnexClient implements ClientContract {
     return this
   }
 
-  buildOrWhere(statement: string | Record<string, any>, value?: any): KnexClient {
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): KnexClient {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.where(statement)
 
@@ -351,7 +379,7 @@ export class KnexClient implements ClientContract {
     return this
   }
 
-  buildOrderBy(column: string, direction?: "asc" | "desc"): KnexClient {
+  buildOrderBy(column: string, direction?: 'asc' | 'desc'): KnexClient {
     this.queryBuilder = this.queryBuilder.orderBy(column, direction)
 
     return this
@@ -389,7 +417,10 @@ export class KnexClient implements ClientContract {
     return this
   }
 
-  buildWhereLike(statement: string | Record<string, any>, value?: any): KnexClient {
+  buildWhereLike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): KnexClient {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.whereLike(statement)
 
@@ -401,7 +432,10 @@ export class KnexClient implements ClientContract {
     return this
   }
 
-  buildWhereILike(statement: string | Record<string, any>, value?: any): KnexClient {
+  buildWhereILike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): KnexClient {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.whereIlike(statement)
 
@@ -431,7 +465,10 @@ export class KnexClient implements ClientContract {
     return this
   }
 
-  buildWhereNot(statement: string | Record<string, any>, value?: any): KnexClient {
+  buildWhereNot(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): KnexClient {
     if (typeof statement === 'object') {
       this.queryBuilder = this.queryBuilder.whereNot(statement)
 

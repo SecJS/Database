@@ -37,31 +37,21 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should insert new products to the database', async () => {
-    const idOfProducts = await database.insert([
-      { name: 'iPhone 10'},
-      { name: 'iPhone 11'},
-      { name: 'iPhone 12'}
-    ])
+    const idOfProducts = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
     expect(idOfProducts.length).toBe(3)
   })
 
   it('should get the product from database', async () => {
-    const [idIphone] = await database.insert({ name: 'iPhone 10'})
+    const [idIphone] = await database.insert({ name: 'iPhone 10' })
 
-    const iphone = await database
-      .buildWhere('id', idIphone)
-      .find()
+    const iphone = await database.buildWhere('id', idIphone).find()
 
     expect(iphone.name).toBe('iPhone 10')
   })
 
   it('should get all the products from database', async () => {
-    await database.insert([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
+    await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
     const iphones = await database.findMany()
 
@@ -69,11 +59,7 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should get all the products from database paginated', async () => {
-    await database.insert([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
+    await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
     const paginatedResponse = await database.paginate(0, 2, '/products')
 
@@ -90,11 +76,7 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should get all the products paginated but without paginated response', async () => {
-    await database.insert([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
+    await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
     const data = await database.forPage(0, 2)
 
@@ -102,25 +84,19 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should update the product in database', async () => {
-    const [iphone] = await database.insertAndGet({ name: 'iPhone 10'})
+    const [iphone] = await database.insertAndGet({ name: 'iPhone 10' })
 
-    const [iphoneUpdated] = await database
-      .buildWhere('id', iphone.id)
-      .updateAndGet('name', 'iPhone 11')
+    const [iphoneUpdated] = await database.buildWhere('id', iphone.id).updateAndGet('name', 'iPhone 11')
 
     expect(iphoneUpdated.name).toBe('iPhone 11')
   })
 
   it('should delete the product in database', async () => {
-    const [iphone] = await database.insertAndGet({ name: 'iPhone 10'})
+    const [iphone] = await database.insertAndGet({ name: 'iPhone 10' })
 
-    await database
-      .buildWhere('id', iphone.id)
-      .delete()
+    await database.buildWhere('id', iphone.id).delete()
 
-    const deletedIphone = await database
-      .buildWhere({ id: iphone.id })
-      .find()
+    const deletedIphone = await database.buildWhere({ id: iphone.id }).find()
 
     expect(deletedIphone).toBeFalsy()
   })
@@ -128,18 +104,14 @@ describe('\n Database PostgreSQL Class', () => {
   it('should be able to create and drop databases from different instances', async () => {
     await database.createDatabase('new-database')
 
-    const newDb = await new Database()
-      .connection('postgres', { database: 'new-database' })
-      .connect()
+    const newDb = await new Database().connection('postgres', { database: 'new-database' }).connect()
 
     await newDb.createTable('products', tableBuilder => {
       tableBuilder.increments('id').primary()
       tableBuilder.string('name').notNullable()
     })
 
-    const [product] = await newDb
-      .buildTable('products')
-      .insertAndGet({ name: 'Product' })
+    const [product] = await newDb.buildTable('products').insertAndGet({ name: 'Product' })
 
     expect(product.name).toBe('Product')
 
@@ -148,14 +120,24 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should be able to join on other related tables', async () => {
-    const iphones = await database.insertAndGet([
-      { name: 'iPhone 10' },
-      { name: 'iPhone 11' },
-      { name: 'iPhone 12' }
-    ])
+    const iphones = await database.insertAndGet([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
-    await Promise.all(iphones.map(iphone => database.buildTable('product_details').insert({ detail: '64 GB', productId: iphone.id })))
-    await Promise.all(iphones.map(iphone => database.buildTable('product_details').insert({ detail: 'CPU ARM Arch', productId: iphone.id })))
+    await Promise.all(
+      iphones.map(iphone =>
+        database.buildTable('product_details').insert({
+          detail: '64 GB',
+          productId: iphone.id,
+        }),
+      ),
+    )
+    await Promise.all(
+      iphones.map(iphone =>
+        database.buildTable('product_details').insert({
+          detail: 'CPU ARM Arch',
+          productId: iphone.id,
+        }),
+      ),
+    )
 
     const iphonesWithDetails = await database
       .buildTable('products')
@@ -174,11 +156,9 @@ describe('\n Database PostgreSQL Class', () => {
       tableBuilder.string('name').notNullable()
     })
 
-    const macbooks = await database.buildTable('products').insertAndGet([
-      { name: 'Macbook 2019' },
-      { name: 'Macbook 2020' },
-      { name: 'Macbook 2021' },
-    ])
+    const macbooks = await database
+      .buildTable('products')
+      .insertAndGet([{ name: 'Macbook 2019' }, { name: 'Macbook 2020' }, { name: 'Macbook 2021' }])
 
     expect(macbooks.length).toBe(3)
     expect(macbooks[0].id).toBe(1)
@@ -238,12 +218,7 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should be able to use pluck method, that returns the values of specific table column', async () => {
-    await database
-      .buildTable('products')
-      .insert([
-        { name: 'Apple Watch Series 2' },
-        { name: 'Apple Watch Series 3' },
-      ])
+    await database.buildTable('products').insert([{ name: 'Apple Watch Series 2' }, { name: 'Apple Watch Series 3' }])
 
     const productsName = await database.pluck('name')
 
@@ -253,12 +228,7 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should be able to use raw method to make raw queries to database', async () => {
-    await database
-      .buildTable('products')
-      .insert([
-        { name: 'Apple Watch Series 2' },
-        { name: 'Apple Watch Series 3' },
-      ])
+    await database.buildTable('products').insert([{ name: 'Apple Watch Series 2' }, { name: 'Apple Watch Series 3' }])
 
     const products = await database.raw('SELECT * FROM ??;', ['products'])
 
@@ -272,7 +242,7 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   it('should be able to create callbacks for database events', async () => {
-    database.on('query', (data) => {
+    database.on('query', data => {
       expect(data.method).toBe('insert')
     })
 
@@ -288,12 +258,137 @@ describe('\n Database PostgreSQL Class', () => {
       expect(sql.toNative().sql).toBe('insert into "products" ("name") values ($1), ($2) returning "id"')
     })
 
+    await database.buildTable('products').insert([{ name: 'Apple Watch Series 2' }, { name: 'Apple Watch Series 3' }])
+  })
+
+  it('should be able to count and count distinct the database data', async () => {
     await database
       .buildTable('products')
       .insert([
+        { name: null },
+        { name: 'Apple Watch Series 2' },
         { name: 'Apple Watch Series 2' },
         { name: 'Apple Watch Series 3' },
       ])
+
+    const countAll = await database.count('*')
+    const countName = await database.count('name')
+    const countDistinct = await database.countDistinct('name')
+
+    expect(countAll).toBe(4)
+    expect(countName).toBe(3)
+    expect(countDistinct).toBe(2)
+  })
+
+  it('should be able to get the min and max values from some column', async () => {
+    await database.createTable('smartphones', () => ({
+      quantity: { type: Number, required: true },
+    }))
+
+    await database
+      .buildTable('smartphones')
+      .insert([{ quantity: -40 }, { quantity: 10 }, { quantity: 20 }, { quantity: 30 }, { quantity: 40 }])
+
+    const max = await database.max('quantity')
+    const min = await database.min('quantity')
+
+    expect(max).toBe(40)
+    expect(min).toBe(-40)
+  })
+
+  it('should be able to sum and sum distinct the database data', async () => {
+    await database
+      .buildTable('smartphones')
+      .insert([
+        { quantity: -40 },
+        { quantity: 10 },
+        { quantity: 20 },
+        { quantity: 30 },
+        { quantity: 40 },
+        { quantity: 40 },
+      ])
+
+    const qtyTotal = await database.sum('quantity')
+    const qtyTotalDistinct = await database.sumDistinct('quantity')
+
+    expect(qtyTotal).toBe(100)
+    expect(qtyTotalDistinct).toBe(60)
+  })
+
+  it('should be able to get the avg and avg distinct from the database data', async () => {
+    await database
+      .buildTable('smartphones')
+      .insert([
+        { quantity: -40 },
+        { quantity: 10 },
+        { quantity: 20 },
+        { quantity: 30 },
+        { quantity: 40 },
+        { quantity: 40 },
+      ])
+
+    const qtyAvg = await database.avg('quantity')
+    const qtyAvgDistinct = await database.avgDistinct('quantity')
+
+    expect(qtyAvg).toBe(16.666666666666668)
+    expect(qtyAvgDistinct).toBe(12)
+  })
+
+  it('should be able to increment and decrement values from database', async () => {
+    const ids = await database
+      .buildTable('smartphones')
+      .insert([
+        { quantity: -40 },
+        { quantity: 10 },
+        { quantity: 20 },
+        { quantity: 30 },
+        { quantity: 40 },
+        { quantity: 40 },
+      ])
+
+    const increment = await database.buildWhere('_id', ids[1]).increment('quantity', 20)
+    const decrement = await database.buildWhere('_id', ids[2]).decrement('quantity', 20)
+
+    expect(increment[0].quantity).toBe(30)
+    expect(decrement[0].quantity).toBe(0)
+  })
+
+  it('should be able to get infos from some database column', async () => {
+    const columnInfo = await database.buildTable('products').columnInfo('name')
+
+    expect(columnInfo.defaultValue).toBe('null')
+    expect(columnInfo.type).toBe('any')
+    expect(columnInfo.maxLength).toBe('255')
+    expect(columnInfo.nullable).toBe(true)
+  })
+
+  it('should be able to get data ordered, grouped, with only specific fields selected and using having method', async () => {
+    await database.buildTable('products').insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: -30 },
+      { name: 'iPhone 3', quantity: 10 },
+      { name: 'iPhone 4', quantity: 20 },
+      { name: 'iPhone 5', quantity: 30 },
+      { name: 'iPhone 6', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+      { name: 'iPhone 7', quantity: 50 },
+      { name: 'iPhone 8', quantity: 60 },
+    ])
+
+    const iphones = await database
+      .buildTable('products')
+      .buildGroupBy('name', 'quantity')
+      .buildOrderBy('quantity', 'desc')
+      .buildHaving('quantity', '<=', 40)
+      .findMany()
+
+    expect(iphones.length).toBe(6)
+
+    expect(iphones[0].name).toBe('iPhone 1')
+    expect(iphones[0].quantity).toBe(-40)
+
+    expect(iphones[5].name).toBe('iPhone 6')
+    expect(iphones[5].quantity).toBe(40)
   })
 
   afterEach(async () => {
