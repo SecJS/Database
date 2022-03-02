@@ -152,7 +152,7 @@ export default {
 
 ```ts
 import { Knex } from 'knex'
-import { Database } from '@secjs/database'
+import { Database, TableBuilder } from '@secjs/database'
 
 const database = await new Database().connect()
 
@@ -160,6 +160,17 @@ const database = await new Database().connect()
 // All SQL Drivers from Database are using Knex as query builder and for Mongo NoSQL, mongoose.
 await database.createTable('products', (tableBuilder: Knex.TableBuilder) => {
   tableBuilder.increments('id').primary()
+  tableBuilder.string('name').nullable()
+  tableBuilder.integer('quantity').nullable().defaultTo(0)
+})
+
+// Mongoose driver all has a TableBuilder to create collections, 
+// but it does not have all the methods from Knex table builder.
+
+// Changing the connection to mongo database
+await database.connection('mongo').connect()
+
+await database.createTable('products', (tableBuilder: TableBuilder) => {
   tableBuilder.string('name').nullable()
   tableBuilder.integer('quantity').nullable().defaultTo(0)
 })
@@ -178,13 +189,44 @@ const products = await database.insertAndGet({ name: 'iPhone 13' })
 
 ```ts
 // Build a where query and handle it with find, find return only one value
+// If using mongodb change from id to _id
 const product = await database.buildWhere('id', idIphone).find()
+
 // Find many return an array of values
 const products = await database.findMany()
+
+const page = 0
+const limit = 10
+
 // Find many products paginated and return meta and links
-const { data, meta, links } = await database.paginate(0, 2, '/products')
+const { data, meta, links } = await database.paginate(page, limit, '/products')
+
 // Find many products paginated and return only the data
-const productsPaginated = await database.forPage(0, 2)
+const productsPaginated = await database.forPage(page, limit)
+```
+
+> Update products
+
+```ts
+const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }])
+
+// Be carefull with update, remember to always use where
+const productsUpdated = await database
+  .buildWhereIn('id', productIds)
+  .updateAndGet({ name: 'iPhone X' }) // or updateAngGet('name', 'iPhone X')
+
+console.log(productsUpdated) // [{ id: 1, name: 'iPhone X', quantity: 0 }, { id: 2, name: 'iPhone X', quantity: 0 }]
+```
+
+> Delete products
+
+```ts
+const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }])
+
+// Be carefull with delete, remember to always use where
+await database
+  .buildWhereIn('id', productIds)
+  .delete()
 ```
 
 ...
