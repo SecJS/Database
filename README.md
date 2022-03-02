@@ -148,15 +148,15 @@ export default {
 
 > With the config/database file created you can use Database class to start handling operations in your database.
 
-> Create tables
+> Create/drop tables and databases
 
 ```ts
 import { Knex } from 'knex'
 import { Database, TableBuilder } from '@secjs/database'
 
+// Database class will always use the default value set in config/database to handle operations, in this case, postgres.
 const database = await new Database().connect()
 
-// Database class will always use the default value set in config/database to handle operations, in this case, postgres.
 // All SQL Drivers from Database are using Knex as query builder and for Mongo NoSQL, mongoose.
 await database.createTable('products', (tableBuilder: Knex.TableBuilder) => {
   tableBuilder.increments('id').primary()
@@ -164,7 +164,7 @@ await database.createTable('products', (tableBuilder: Knex.TableBuilder) => {
   tableBuilder.integer('quantity').nullable().defaultTo(0)
 })
 
-// Mongoose driver all has a TableBuilder to create collections, 
+// Mongoose driver has a TableBuilder to create collections, 
 // but it does not have all the methods from Knex table builder.
 
 // Changing the connection to mongo database
@@ -174,6 +174,23 @@ await database.createTable('products', (tableBuilder: TableBuilder) => {
   tableBuilder.string('name').nullable()
   tableBuilder.integer('quantity').nullable().defaultTo(0)
 })
+
+// Drop table products from database
+await database.dropTable('products')
+
+// You can also create databases
+await database.createDatabase('testing-database')
+
+// Then you can create a new database instance to connect to this new database
+const runtimeConfigurations = { database: 'testing-database' }
+
+const testingDatabase = await new Database(runtimeConfigurations).connection('mongo').connect()
+
+// Or a more simple way using the same instance, is just calling the connection method again but with runtimeConfigs
+await database.connection('mongo', runtimeConfigurations).connect()
+
+// You can drop databases too
+await database.dropDatabase('testing-database')
 ```
 
 > Insert products
