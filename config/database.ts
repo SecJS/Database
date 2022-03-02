@@ -26,7 +26,6 @@ export default {
   */
 
   connections: {
-
     sqlite: {
       driver: 'sqlite',
       filename: Env('DB_FILENAME', Path.database('sqlite')),
@@ -78,9 +77,8 @@ export default {
         authSource: 'admin',
         useNewUrlParser: true,
         useUnifiedTopology: true,
-      }
+      },
     },
-
   },
 
   /*
@@ -108,18 +106,16 @@ export default {
   */
 
   redis: {
-
     default: {
       host: Env('REDIS_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'REDIS_PORT' }, 6379),
-      password: Env('REDIS_PASSWORD', '')
+      password: Env('REDIS_PASSWORD', ''),
     },
 
     cache: {
       host: Env('REDIS_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'REDIS_PORT' }, 6379),
-      password: Env('REDIS_PASSWORD', '')
+      password: Env('REDIS_PASSWORD', ''),
     },
-
-  }
+  },
 }
