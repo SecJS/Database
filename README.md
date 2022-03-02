@@ -197,9 +197,22 @@ await database.dropDatabase('testing-database')
 
 ```ts
 // Insert and return an array of ID
-const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
+const productIds = await database
+  .buildTable('products')
+  .insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
+
 // Insert and return an array of products objects
-const products = await database.insertAndGet({ name: 'iPhone 13' })
+const products = await database
+  .buildTable('products')
+  .insertAndGet({ name: 'iPhone 13' })
+
+// WARN - buildTable method needs to be called only one time before the connection is stabilished.
+// when you call buildTable it saves in the Driver instance the table that you are working on.
+
+// So, all the operations that I call now will use 'products' table to operate. Example:
+const data = await database
+  // .buildTable('products') I do not need this anymore
+  .findMany() // Will find all the data inside products table
 ```
 
 > Get products
