@@ -154,7 +154,8 @@ export default {
 import { Knex } from 'knex'
 import { Database, TableBuilder } from '@secjs/database'
 
-// Database class will always use the default value set in config/database to handle operations, in this case, postgres.
+// Database class will always use the default value set in config/database 
+// to handle operations, in this case, postgres.
 const database = await new Database().connect()
 
 // All SQL Drivers from Database are using Knex as query builder and for Mongo NoSQL, mongoose.
@@ -164,15 +165,30 @@ await database.createTable('products', (tableBuilder: Knex.TableBuilder) => {
   tableBuilder.integer('quantity').nullable().defaultTo(0)
 })
 
+// Creating the product details table
+await database.createTable('product_details', (tableBuilder: Knex.TableBuilder) => {
+  tableBuilder.increments('id').primary()
+  tableBuilder.string('detail').nullable()
+  // One product has many product details
+  tableBuilder.integer('productId').references('id').inTable('products')
+})
+
 // Mongoose driver has a TableBuilder to create collections, 
 // but it does not have all the methods from Knex table builder.
 
 // Changing the connection to mongo database
 await database.connection('mongo').connect()
 
+// With mongo connection we do not have to specify the id because
+// mongoose auto create the _id property
 await database.createTable('products', (tableBuilder: TableBuilder) => {
   tableBuilder.string('name').nullable()
   tableBuilder.integer('quantity').nullable().defaultTo(0)
+})
+
+await database.createTable('product_details', (tableBuilder: TableBuilder) => {
+  tableBuilder.string('detail').nullable()
+  tableBuilder.integer('productId').references('id').inTable('products')
 })
 
 // Drop table products from database
@@ -257,6 +273,33 @@ const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone
 await database
   .buildWhereIn('id', productIds)
   .delete()
+```
+
+> Join in tables
+
+```ts
+const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }])
+
+// Creating a new detail for each product created
+const promisesPending = productIds.map(productId => (database.buildTable('product_details').insert({
+  detail: '64 GB',
+  productId
+})))
+
+// Resolving the array of promises
+await Promise.all(promisesPending)
+
+const productsWithDetails = await database
+  .buildTable('products')
+  .buildJoin('product_details', 'products.id', 'product_details.id', 'leftJoin')
+  .findMany()
+
+// If using SQL driver, the detail will come inside the main product object.
+//Knex does not map the relations, is just a query builder.
+console.log(productsWithDetails) // [{ id: 1, name: 'iPhone 10', quantity: 0, detail: '64 GB', productId: 1 }, ...]
+
+// But if using MongoDriver, mongoose will map the "relation" and bring product details inside an object
+console.log(productsWithDetails) // [{ id: 1, name: 'iPhone 10', quantity: 0, product_details: [{ id: 1, detail: '64 GB', productId: 1 }] }, ...]
 ```
 
 ...
