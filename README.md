@@ -275,7 +275,7 @@ await database
   .delete()
 ```
 
-> Join in tables
+> Join relations
 
 ```ts
 const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }])
