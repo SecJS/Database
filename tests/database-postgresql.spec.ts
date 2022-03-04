@@ -243,7 +243,6 @@ describe('\n Database PostgreSQL Class', () => {
     // Only for Knex
     expect(products.command).toBe('SELECT')
     expect(products.rowCount).toBe(2)
-    expect(products.rowCount).toBe(2)
     expect(products.rows.length).toBe(2)
     expect(products.rows[0].id).toBe(1)
     expect(products.rows[0].name).toBe('Apple Watch Series 2')

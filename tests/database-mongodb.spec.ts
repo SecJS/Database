@@ -227,8 +227,10 @@ describe('\n Database Mongo Class', () => {
     const products = await database.raw('db.collection(??).find().toArray()', ['products'])
 
     // Only for Mongoose
-    expect(products.length).toBe(2)
-    expect(products[0].name).toBe('Apple Watch Series 2')
+    expect(products.command).toBe('find()')
+    expect(products.rowCount).toBe(2)
+    expect(products.rows.length).toBe(2)
+    expect(products.rows[0].name).toBe('Apple Watch Series 2')
   })
 
   it('should be able to count and count distinct the database data', async () => {

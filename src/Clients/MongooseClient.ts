@@ -216,7 +216,18 @@ export class MongooseClient implements ClientContract {
     // eslint-disable-next-line no-new-func
     const fn = new Function('db', `return ${raw}`)
 
-    return fn(db)
+    const result = await fn(db)
+
+    const rawSplit = raw.split('.')
+    let command = rawSplit.pop()
+
+    if (command === 'toArray()') command = rawSplit.pop()
+
+    return {
+      command,
+      rowCount: result.length,
+      rows: result,
+    }
   }
 
   setQueryBuilder(query: any): void {

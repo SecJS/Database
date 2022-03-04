@@ -148,7 +148,7 @@ export default {
 
 > With the config/database file created you can use Database class to start handling operations in your database.
 
-> Create/drop tables and databases
+#### Create/drop tables and databases
 
 ```ts
 import { Knex } from 'knex'
@@ -209,7 +209,7 @@ await database.connection('mongo', runtimeConfigurations).connect()
 await database.dropDatabase('testing-database')
 ```
 
-> Insert products
+#### Insert products
 
 ```ts
 // Insert and return an array of ID
@@ -231,7 +231,7 @@ const data = await database
   .findMany() // Will find all the data inside products table
 ```
 
-> Get products
+#### Get products
 
 ```ts
 // Build a where query and handle it with find, find return only one value
@@ -251,7 +251,7 @@ const { data, meta, links } = await database.paginate(page, limit, '/products')
 const productsPaginated = await database.forPage(page, limit)
 ```
 
-> Update products
+#### Update products
 
 ```ts
 const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }])
@@ -264,7 +264,7 @@ const productsUpdated = await database
 console.log(productsUpdated) // [{ id: 1, name: 'iPhone X', quantity: 0 }, { id: 2, name: 'iPhone X', quantity: 0 }]
 ```
 
-> Delete products
+#### Delete products
 
 ```ts
 const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }])
@@ -275,7 +275,7 @@ await database
   .delete()
 ```
 
-> Join relations
+#### Join relations
 
 ```ts
 const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }])
@@ -302,7 +302,7 @@ console.log(productsWithDetails) // [{ id: 1, name: 'iPhone 10', quantity: 0, de
 console.log(productsWithDetails) // [{ id: 1, name: 'iPhone 10', quantity: 0, product_details: [{ id: 1, detail: '64 GB', productId: 1 }] }, ...]
 ```
 
-> Clone Database Query Chain
+#### Clone Database Query Chain
 
 ```ts
 // Set the table products
@@ -318,7 +318,7 @@ console.log(database === clonedDatabase) // false
 const arrayOfIds = await clonedDatabase.insert({ name: 'AirPods 2' })
 ```
 
-> Clone client instance (Knex, Mongoose, etc)
+#### Clone client instance (Knex, Mongoose, etc)
 
 ```ts
 import { Knex } from 'knex'
@@ -339,6 +339,64 @@ const arrayOfIds = await client.insert({ name: 'AirPods 2' }, 'id')
   const product = await client.insertOne({ name: 'AirPods 2' }, { session })
 }
 ```
+
+#### Database Transactions
+
+```ts
+// Start the transaction
+const trx = await database.beginTransaction()
+
+await trx
+  .buildTable('products')
+  .insert({ name: 'AirPods 3' })
+
+try {
+  // Do some process that could fail...
+
+  // Commit the transaction if process does not fail
+  await trx.commit()
+} catch (error) {
+  // Handle the error...
+
+  // Rollback the transaction and all the operations done in the database
+  await trx.rollback()
+}
+```
+
+#### Pluck column values
+
+```ts
+await database
+  .buildTable('products')
+  .insert([{ name: 'Apple Watch Series 2' }, { name: 'Apple Watch Series 3' }])
+
+// Pluck get the value of only one column
+const productsName = await database.pluck('name')
+
+console.log(productsName) // ['Apple Watch Series 2', 'Apple Watch Series 3']
+```
+
+#### Raw queries
+
+```ts
+await database
+  .buildTable('products')
+  .insert({ name: 'iPhone X' })
+
+// Using Knex
+const knexRaw = await database.raw('SELECT * FROM ??;', ['products'])
+
+console.log(knexRaw) // { command: 'SELECT', rowCount: 1, rows: [{ id: 1, name: 'iPhone X' }] }
+
+// Using Mongoose
+await database.connection('mongo').connect()
+
+const mongooseRaw = await database.raw('db.collection(??).find().toArray()', ['products'])
+
+console.log(mongooseRaw)  // { command: 'find()', rowCount: 1, rows: [{ id: 1, name: 'iPhone X' }] }
+```
+
+...
 
 ---
 
