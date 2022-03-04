@@ -61,7 +61,7 @@ export interface DatabaseContract {
    * @return Return the actual query chain
    *
    */
-  cloneQuery<T = any>(): T
+  cloneQuery<T = any>(): { client: T }
 
   /**
    * BeginTransaction method

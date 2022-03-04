@@ -187,10 +187,10 @@ describe('\n Database PostgreSQL Class', () => {
   it('should be able to clone the query builder with the exactly query chain', async () => {
     database.buildTable('products')
 
-    const clonedQuery = database.cloneQuery<Knex.QueryBuilder>()
+    const { client } = database.cloneQuery<Knex.QueryBuilder>()
 
     // This should insert in products table because of database.buildTable
-    const arrayOfIds = await clonedQuery.insert({ name: 'AirPods 2' }, 'id')
+    const arrayOfIds = await client.insert({ name: 'AirPods 2' }, 'id')
 
     expect(arrayOfIds.length).toBe(1)
   })

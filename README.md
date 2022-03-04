@@ -302,7 +302,43 @@ console.log(productsWithDetails) // [{ id: 1, name: 'iPhone 10', quantity: 0, de
 console.log(productsWithDetails) // [{ id: 1, name: 'iPhone 10', quantity: 0, product_details: [{ id: 1, detail: '64 GB', productId: 1 }] }, ...]
 ```
 
-...
+> Clone Database Query Chain
+
+```ts
+// Set the table products
+database.buildTable('products')
+
+// Clone the database query chain, this will create a new instance of the Database class
+// but with the exactly same query chain.
+const clonedDatabase = await database.clone()
+
+console.log(database === clonedDatabase) // false
+
+// This insert will be done in products table because of database.buildTable
+const arrayOfIds = await clonedDatabase.insert({ name: 'AirPods 2' })
+```
+
+> Clone client instance (Knex, Mongoose, etc)
+
+```ts
+import { Knex } from 'knex'
+
+// This method will give you an instance of the client 
+// depending the driver that you are using
+const { client } = await database.cloneQuery<Knex.QueryBuilder>()
+
+const arrayOfIds = await client.insert({ name: 'AirPods 2' }, 'id')
+
+{
+  // For mongoose you can set the Schema as type
+  await database.connection('mongo').connect()
+
+  const { client, session } = await database.cloneQuery<UserSchema>()
+
+  // If using session...
+  const product = await client.insertOne({ name: 'AirPods 2' }, { session })
+}
+```
 
 ---
 

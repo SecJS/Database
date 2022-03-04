@@ -109,11 +109,13 @@ export class MongooseClient implements ClientContract {
     this.client.on(event, callback)
   }
 
-  cloneQuery(): any {
+  cloneQuery() {
     return {
       session: this.session,
+      where: this._where,
       pipeline: this._pipeline,
       defaultTable: this.defaultTable,
+      client: this.query(),
     }
   }
 
@@ -829,17 +831,6 @@ export class MongooseClient implements ClientContract {
   }
 
   buildGroupBy(...columns: string[]): ClientContract {
-    // const project = columns.reduce(
-    //   (previous: any, column) => {
-    //     previous[0].$group._id = `$${column}`
-    //     previous[1].$project[column] = `$_id`
-    //     previous[1].$project._id = 0
-    //
-    //     return previous
-    //   },
-    //   [{ $group: {} }, { $project: {} }],
-    // )
-
     const group = {
       $group: {
         _id: {},

@@ -40,8 +40,8 @@ export class KnexClient implements ClientContract {
     this.queryBuilder = this.query()
   }
 
-  setQueryBuilder(query: Knex.QueryBuilder) {
-    this.queryBuilder = query
+  setQueryBuilder(query: any) {
+    this.queryBuilder = query.client
   }
 
   query() {
@@ -130,8 +130,10 @@ export class KnexClient implements ClientContract {
     this.isConnected = true
   }
 
-  cloneQuery(): Knex.QueryBuilder {
-    return this.queryBuilder.clone()
+  cloneQuery() {
+    return {
+      client: this.queryBuilder.clone(),
+    }
   }
 
   async beginTransaction(): Promise<Knex.Transaction> {
