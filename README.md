@@ -615,7 +615,7 @@ export default {
       driver: 'custom',
       url: Env('DATABASE_URL', ''),
     }
-    // ... other disks
+    // ... other connections
   }
 }
 ```
