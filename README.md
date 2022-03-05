@@ -358,8 +358,10 @@ console.log(products[0].name) // 'iPhone 3'
 #### Database Transactions
 
 ```ts
+import { Transaction } from '@secjs/database'
+
 // Start the transaction
-const trx = await database.beginTransaction()
+const trx: Transaction = await database.beginTransaction()
 
 await trx
   .buildTable('products')
