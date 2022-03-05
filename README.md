@@ -302,42 +302,57 @@ console.log(productsWithDetails) // [{ id: 1, name: 'iPhone 10', quantity: 0, de
 console.log(productsWithDetails) // [{ id: 1, name: 'iPhone 10', quantity: 0, product_details: [{ id: 1, detail: '64 GB', productId: 1 }] }, ...]
 ```
 
-#### Clone Database Query Chain
+#### Order By
 
 ```ts
-// Set the table products
-database.buildTable('products')
+await database.buildTable('products').insert([
+  { name: 'iPhone 1', quantity: -40 },
+  { name: 'iPhone 2', quantity: -30 },
+  { name: 'iPhone 3', quantity: 10 },
+  { name: 'iPhone 4', quantity: 20 },
+  { name: 'iPhone 5', quantity: 30 },
+  { name: 'iPhone 6', quantity: 40 },
+  { name: 'iPhone 6', quantity: 40 },
+  { name: 'iPhone 7', quantity: 50 },
+  { name: 'iPhone 8', quantity: 60 },
+])
 
-// Clone the database query chain, this will create a new instance of the Database class
-// but with the exactly same query chain.
-const clonedDatabase = await database.clone()
+// Order the products by quantity value in desc mode
+const products = await database
+  .buildTable('products')
+  .buildSelect('name', 'quantity')
+  .buildOrderBy('quantity', 'desc')
+  .findMany()
 
-console.log(database === clonedDatabase) // false
-
-// This insert will be done in products table because of database.buildTable
-const arrayOfIds = await clonedDatabase.insert({ name: 'AirPods 2' })
+console.log(products[0].name) // 'iPhone 8'
 ```
 
-#### Clone client instance (Knex, Mongoose, etc)
+#### Group By and Having
 
 ```ts
-import { Knex } from 'knex'
+await database.buildTable('products').insert([
+  { name: 'iPhone 1', quantity: -40 },
+  { name: 'iPhone 2', quantity: -30 },
+  { name: 'iPhone 3', quantity: 10 },
+  { name: 'iPhone 4', quantity: 20 },
+  { name: 'iPhone 5', quantity: 30 },
+  { name: 'iPhone 6', quantity: 40 },
+  { name: 'iPhone 6', quantity: 40 },
+  { name: 'iPhone 7', quantity: 50 },
+  { name: 'iPhone 8', quantity: 60 },
+])
 
-// This method will give you an instance of the client 
-// depending the driver that you are using
-const { client } = await database.cloneQuery<Knex.QueryBuilder>()
 
-const arrayOfIds = await client.insert({ name: 'AirPods 2' }, 'id')
+const products = await database
+  .buildTable('products')
+  .buildSelect('name', 'quantity')
+  // Group the products by name and quantity
+  .buildGroupBy('name', 'quantity')
+  // Then regroup then only where quantity is under 40
+  .buildHaving('quantity', '<=', 40)
+  .findMany()
 
-{
-  // For mongoose you can set the Schema as type
-  await database.connection('mongo').connect()
-
-  const { client, session } = await database.cloneQuery<UserSchema>()
-
-  // If using session...
-  const product = await client.insertOne({ name: 'AirPods 2' }, { session })
-}
+console.log(products[0].name) // 'iPhone 3'
 ```
 
 #### Database Transactions
@@ -376,6 +391,107 @@ const productsName = await database.pluck('name')
 console.log(productsName) // ['Apple Watch Series 2', 'Apple Watch Series 3']
 ```
 
+#### Min & Max
+
+```ts
+await database.buildTable('products').insert([
+  { name: 'iPhone 1', quantity: -40 },
+  { name: 'iPhone 2', quantity: 10 },
+  { name: 'iPhone 3', quantity: 20 },
+  { name: 'iPhone 4', quantity: 30 },
+  { name: 'iPhone 5', quantity: 40 },
+])
+
+// Get the max value from column quantity in products table
+console.log(await database.max('quantity')) // 40
+// Get the min value from column quantity in products table
+console.log(await database.min('quantity')) // -40
+```
+
+#### Increment & Decrement
+
+```ts
+const ids = await database.buildTable('products').insert([
+  { name: 'iPhone 1', quantity: -40 },
+  { name: 'iPhone 2', quantity: 10 },
+  { name: 'iPhone 3', quantity: 20 },
+  { name: 'iPhone 4', quantity: 30 },
+  { name: 'iPhone 5', quantity: 40 },
+  { name: 'iPhone 6', quantity: 40 },
+])
+
+// Incrementing product quantity
+await database.buildWhere('_id', ids[1]).increment('quantity', 20)
+// Decrementing product quantity
+await database.buildWhere('_id', ids[2]).decrement('quantity', 20)
+
+// 10 + 20 = 30
+console.log(await database.buildWhere('_id', ids[1]).find()) // { name: 'iPhone 2', quantity: 30 }
+
+// 20 - 20 = 40
+console.log(await database.buildWhere('_id', ids[2]).find()) // { name: 'iPhone 3', quantity: 0 }
+```
+
+#### Count & Count Distinct
+
+```ts
+await database
+  .buildTable('products')
+  .insert([
+    { name: null },
+    { name: 'Apple Watch Series 2' },
+    { name: 'Apple Watch Series 2' },
+    { name: 'Apple Watch Series 3' },
+  ])
+
+// Count all table rows
+console.log(await database.count('*')) // 4
+
+// Count only where name column exists in table products
+console.log(await database.count('name')) // 3
+
+// Count only where name column exists in table products and the values from name are distinct
+console.log(await database.countDistinct('name')) // 2
+```
+
+#### Sum & Sum Distinct
+
+```ts
+await database.buildTable('products').insert([
+  { name: 'iPhone 1', quantity: -40 },
+  { name: 'iPhone 2', quantity: 10 },
+  { name: 'iPhone 3', quantity: 20 },
+  { name: 'iPhone 4', quantity: 30 },
+  { name: 'iPhone 5', quantity: 40 },
+  { name: 'iPhone 6', quantity: 40 },
+])
+
+// Sum all the values from the column quantity in products table
+console.log(await database.sum('quantity')) // 100
+
+// Sum all the values from the column quantity in products table only where quantity values are distinct
+console.log(database.sumDistinct('quantity')) // 60
+```
+
+#### Avg & Avg Distinct
+
+```ts
+await database.buildTable('products').insert([
+  { name: 'iPhone 1', quantity: -40 },
+  { name: 'iPhone 2', quantity: 10 },
+  { name: 'iPhone 3', quantity: 20 },
+  { name: 'iPhone 4', quantity: 30 },
+  { name: 'iPhone 5', quantity: 40 },
+  { name: 'iPhone 6', quantity: 40 },
+])
+
+// Get the average of all the values from column quantity in table products
+console.log(await database.avg('quantity')) // 16.666666666666668
+
+// Get the average of all the values from column quantity in table products where quantity values are distinct
+console.log(await database.avgDistinct('quantity')) // 12
+```
+
 #### Raw queries
 
 ```ts
@@ -396,7 +512,54 @@ const mongooseRaw = await database.raw('db.collection(??).find().toArray()', ['p
 console.log(mongooseRaw)  // { command: 'find()', rowCount: 1, rows: [{ id: 1, name: 'iPhone X' }] }
 ```
 
-...
+#### Get information from columns
+
+```ts
+const columnInfo = await database.buildTable('products').columnInfo('name')
+
+console.log(columnInfo) // { defaultValue: null, type: 'character varying', maxLength: 255, nullable: true }
+
+// WARN Under MongoDriver
+// columnInfo method in mongo just return a fake object
+```
+
+#### Clone Database Query Chain
+
+```ts
+// Set the table products
+database.buildTable('products')
+
+// Clone the database query chain, this will create a new instance of the Database class
+// but with the exactly same query chain.
+const clonedDatabase = await database.clone()
+
+console.log(database === clonedDatabase) // false
+
+// This insert will be done in products table because of database.buildTable
+const arrayOfIds = await clonedDatabase.insert({ name: 'AirPods 2' })
+```
+
+#### Clone client instance (Knex, Mongoose, etc)
+
+```ts
+import { Knex } from 'knex'
+
+// This method will give you an instance of the client 
+// depending the driver that you are using
+const { client } = await database.cloneQuery<Knex.QueryBuilder>()
+
+const arrayOfIds = await client.insert({ name: 'AirPods 2' }, 'id')
+
+{
+  // For mongoose you can set the Schema as type
+  await database.connection('mongo').connect()
+
+  const { client, session } = await database.cloneQuery<UserSchema>()
+
+  // If using session...
+  const product = await client.insertOne({ name: 'AirPods 2' }, { session })
+}
+```
 
 ---
 
