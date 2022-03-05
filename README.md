@@ -640,6 +640,4 @@ await database.connection('myconnection').connect()
 
 ---
 
-## License
-
 Made with 🖤 by [jlenon7](https://github.com/jlenon7) :wave:
