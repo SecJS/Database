@@ -156,7 +156,7 @@ import { Database, TableBuilder } from '@secjs/database'
 
 // Database class will always use the default value set in config/database 
 // to handle operations, in this case, postgres.
-const database = await new Database().connect()
+const database = await new Database().connection('postgres').connect()
 
 // All SQL Drivers from Database are using Knex as query builder and for Mongo NoSQL, mongoose.
 await database.createTable('products', (tableBuilder: Knex.TableBuilder) => {
@@ -561,6 +561,81 @@ const arrayOfIds = await client.insert({ name: 'AirPods 2' }, 'id')
   // If using session...
   const product = await client.insertOne({ name: 'AirPods 2' }, { session })
 }
+```
+
+### Subscribing configs of connections in runtime
+
+```ts
+// Using connection method approach
+await database
+  .connection('postgres', { database: 'test-db' })
+  .connect()
+
+// Using constructor method approach
+const newDatabase = new Database({ database: 'test-db' })
+
+// You can reset configs using an empty object in the connection method
+await database
+  .connection('postgres', {}) // Clear the runtime configuration
+  .connect()
+```
+
+### Extending connections and drivers
+
+> Nowadays, @secjs/database has only MongoDriver, MySqlDriver, PostgresDriver, SqliteDriver and SqlServerDriver support, but you can extend the drivers for Database class if you implement DriverContract interface
+
+```ts
+import { DriverContract } from '@secjs/database'
+
+class CustomDriver implements DriverContract {
+  private readonly _dbUrl: string
+
+  constructor(connection: string) {
+    this._dbUrl = Config.get(`database.connections.${connection}.url`)
+  }
+
+  // all the methods implemented from DriverContract...
+}
+```
+
+> Constructor is extremely important in your CustomDriver class, it's the constructor that
+> will use the values from config/database connections to manipulate your CustomDriver using
+> `connection` method from database. So if you are building a CustomDriver, and you want to use it,
+> you can create a new connection inside config/database connections or change the driver from an existing connection.
+
+```ts
+// extending connections
+// config/database file
+
+export default {
+  // default etc...
+
+  connections: {
+    myconnection: {
+      driver: 'custom',
+      url: Env('DATABASE_URL', ''),
+    }
+    // ... other disks
+  }
+}
+```
+
+> Build you new driver using build static method
+
+```ts
+const name = 'custom'
+const driver = CustomDriver
+
+Database.build(name, driver)
+
+console.log(Database.drivers) // ['mysql', 'mongo', 'sqlite', 'mssql', 'postgres', 'custom']
+```
+
+> Now, if you have implemented your connection in config/database, you can use him inside Database
+
+```ts
+// Will use CustomDriver to handle the database operations
+await database.connection('myconnection').connect()
 ```
 
 ---
