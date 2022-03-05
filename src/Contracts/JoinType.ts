@@ -8,12 +8,12 @@
  */
 
 export type JoinType =
-  'join'           |
-  'innerJoin'      |
-  'leftJoin'       |
-  'leftOuterJoin'  |
-  'rightJoin'      |
-  'rightOuterJoin' |
-  'outerJoin'      |
-  'fullOuterJoin'  |
-  'crossJoin'
+  | 'join'
+  | 'innerJoin'
+  | 'leftJoin'
+  | 'leftOuterJoin'
+  | 'rightJoin'
+  | 'rightOuterJoin'
+  | 'outerJoin'
+  | 'fullOuterJoin'
+  | 'crossJoin'

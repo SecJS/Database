@@ -15,9 +15,8 @@ import {
   Schema,
 } from 'mongoose'
 import { ObjectID } from 'bson'
-import { Is, paginate } from '@secjs/utils'
+import { Is, paginate, PaginatedResponse } from '@secjs/utils'
 import { Transaction } from '../Utils/Transaction'
-import { PaginatedResponse } from '@secjs/contracts'
 import { TableBuilder } from '../Builders/TableBuilder'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
@@ -376,7 +375,7 @@ export class MongoDriver implements DriverContract {
     page: number,
     limit: number,
     resourceUrl?: string,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse> {
     const data = await this.buildSkip(page).buildLimit(limit).findMany()
     const count = await this.count()
 

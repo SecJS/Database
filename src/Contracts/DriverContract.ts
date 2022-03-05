@@ -8,7 +8,7 @@
  */
 
 import { JoinType } from './JoinType'
-import { PaginatedResponse } from '@secjs/contracts'
+import { PaginatedResponse } from '@secjs/utils'
 import { TransactionContract } from './TransactionContract'
 
 export interface DriverContract {
@@ -492,7 +492,7 @@ export interface DriverContract {
     page: number,
     limit: number,
     resourceUrl?: string,
-  ): Promise<PaginatedResponse<any>>
+  ): Promise<PaginatedResponse>
 
   /**
    * Count method

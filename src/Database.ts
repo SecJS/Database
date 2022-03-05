@@ -14,7 +14,7 @@ import {
 import { Config } from '@secjs/config'
 import { Drivers } from './Drivers/Drivers'
 import { JoinType } from './Contracts/JoinType'
-import { PaginatedResponse } from '@secjs/contracts'
+import { PaginatedResponse } from '@secjs/utils'
 import { DriverContract } from './Contracts/DriverContract'
 import { DatabaseContract } from './Contracts/DatabaseContract'
 import { TransactionContract } from './Contracts/TransactionContract'
@@ -182,7 +182,7 @@ export class Database implements DatabaseContract {
     page: number,
     limit: number,
     resourceUrl?: string,
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse> {
     return this.driver.paginate(page, limit, resourceUrl)
   }
 

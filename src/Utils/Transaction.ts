@@ -8,7 +8,7 @@
  */
 
 import { JoinType } from '../Contracts/JoinType'
-import { PaginatedResponse } from '@secjs/contracts'
+import { PaginatedResponse } from '@secjs/utils'
 import { DriverContract } from '../Contracts/DriverContract'
 import { TransactionContract } from '../Contracts/TransactionContract'
 
@@ -91,7 +91,7 @@ export class Transaction implements TransactionContract {
     page: number,
     limit: number,
     resourceUrl = '/api',
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse> {
     return this.driver.paginate(page, limit, resourceUrl)
   }
 

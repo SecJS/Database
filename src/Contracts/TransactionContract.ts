@@ -8,7 +8,7 @@
  */
 
 import { JoinType } from './JoinType'
-import { PaginatedResponse } from '@secjs/contracts'
+import { PaginatedResponse } from '@secjs/utils'
 
 export interface TransactionContract {
   /**
@@ -139,7 +139,11 @@ export interface TransactionContract {
    * @param resourceUrl The resourceUrl from the request to make the links
    *
    */
-  paginate(page: number, limit: number, resourceUrl?: string): Promise<PaginatedResponse<any>>
+  paginate(
+    page: number,
+    limit: number,
+    resourceUrl?: string,
+  ): Promise<PaginatedResponse>
 
   /**
    * Count method
@@ -278,7 +282,10 @@ export interface TransactionContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhere(statement: string | Record<string, any>, value?: any): TransactionContract
+  buildWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract
 
   /**
    * BuildWhereLike method
@@ -287,7 +294,10 @@ export interface TransactionContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereLike(statement: string | Record<string, any>, value?: any): TransactionContract
+  buildWhereLike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract
 
   /**
    * BuildWhereILike method
@@ -296,7 +306,10 @@ export interface TransactionContract {
    * @param statement Key or an object to make the where
    * @param value The value, should be null when statement is an object
    */
-  buildWhereILike(statement: string | Record<string, any>, value?: any): TransactionContract
+  buildWhereILike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract
 
   /**
    * BuildOrWhere method
@@ -305,7 +318,10 @@ export interface TransactionContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildOrWhere(statement: string | Record<string, any>, value?: any): TransactionContract
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract
 
   /**
    * BuildWhereNot method
@@ -314,7 +330,10 @@ export interface TransactionContract {
    * @param value The value, should be null when statement is an object
    *
    */
-  buildWhereNot(statement: string | Record<string, any>, value?: any): TransactionContract
+  buildWhereNot(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract
 
   /**
    * BuildWhereIn method
@@ -382,7 +401,10 @@ export interface TransactionContract {
    * @param values Two values to make the not between range
    *
    */
-  buildWhereNotBetween(columnName: string, values: [any, any]): TransactionContract
+  buildWhereNotBetween(
+    columnName: string,
+    values: [any, any],
+  ): TransactionContract
 
   /**
    * BuildWhereRaw method
@@ -402,7 +424,12 @@ export interface TransactionContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, column2: string, joinType?: JoinType): TransactionContract
+  buildJoin(
+    tableName: string,
+    column1: string,
+    column2: string,
+    joinType?: JoinType,
+  ): TransactionContract
 
   /**
    * BuildJoin method
@@ -414,7 +441,13 @@ export interface TransactionContract {
    * @param column2 Second column of the verification
    * @param joinType The join type, default is innerJoin
    */
-  buildJoin(tableName: string, column1: string, operator: string, column2: string, joinType?: JoinType): TransactionContract
+  buildJoin(
+    tableName: string,
+    column1: string,
+    operator: string,
+    column2: string,
+    joinType?: JoinType,
+  ): TransactionContract
 
   /**
    * BuildJoinRaw method
