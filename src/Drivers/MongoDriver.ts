@@ -122,10 +122,7 @@ export class MongoDriver implements DriverContract {
   async beginTransaction(): Promise<Transaction> {
     const session = await this.client.startSession()
 
-    session.startTransaction({
-      readConcern: { level: 'snapshot' },
-      writeConcern: { w: 'majority' },
-    })
+    session.startTransaction()
 
     return new Transaction(new MongoDriver(this.client, this.configs, session))
   }

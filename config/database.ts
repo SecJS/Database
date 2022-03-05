@@ -74,7 +74,6 @@ export default {
         w: 'majority',
         replicaSet: 'rs',
         retryWrites: true,
-        authSource: 'admin',
         useNewUrlParser: true,
         useUnifiedTopology: true,
       },

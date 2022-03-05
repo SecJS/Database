@@ -17,16 +17,18 @@ import { DatabaseContract } from '../src/Contracts/DatabaseContract'
 describe('\n Database PostgreSQL Class', () => {
   let database: DatabaseContract = null
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     process.env.DB_HOST = 'localhost'
     process.env.DB_PORT = '5433'
-    process.env.DB_DATABASE = 'secjs-database-testing'
+    process.env.DB_DATABASE = 'postgres'
     process.env.DB_USERNAME = 'postgres'
     process.env.DB_PASSWORD = 'root'
     process.env.DB_FILENAME = ':memory:'
 
     await new Config().load()
+  })
 
+  beforeEach(async () => {
     database = await new Database().connection('postgres').connect()
 
     database.buildTable('products')

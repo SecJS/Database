@@ -11,22 +11,40 @@ import '@secjs/env/src/utils/global'
 
 import { Config } from '@secjs/config'
 import { Database } from '../src/Database'
+import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { TableBuilder } from '../src/Builders/TableBuilder'
 import { DatabaseContract } from '../src/Contracts/DatabaseContract'
 
 describe('\n Database Mongo Class', () => {
+  let replset: MongoMemoryReplSet
   let database: DatabaseContract = null
 
-  beforeEach(async () => {
+  beforeAll(async () => {
+    replset = await MongoMemoryReplSet.create({
+      instanceOpts: [
+        {
+          port: 27017,
+        },
+        {
+          port: 27018,
+        },
+        {
+          port: 27019,
+        },
+      ],
+      replSet: { name: 'rs', count: 3 },
+    })
+
     process.env.DB_HOST = 'localhost:27017,localhost:27018,localhost:27019'
-    process.env.DB_PORT = '30001'
     process.env.DB_DATABASE = 'secjs-database-testing'
-    process.env.DB_USERNAME = 'root'
-    process.env.DB_PASSWORD = 'root'
+    process.env.DB_USERNAME = ''
+    process.env.DB_PASSWORD = ''
     process.env.DB_FILENAME = ':memory:'
 
     await new Config().load()
+  })
 
+  beforeEach(async () => {
     database = await new Database().connection('mongo').connect()
 
     database.buildTable('products')
@@ -362,6 +380,10 @@ describe('\n Database Mongo Class', () => {
 
     expect(iphones[5].name).toBe('iPhone 1')
     expect(iphones[5].quantity).toBe(-40)
+  })
+
+  afterAll(async () => {
+    await replset.stop()
   })
 
   afterEach(async () => {
