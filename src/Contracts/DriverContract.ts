@@ -7,7 +7,6 @@
  * file that was distributed with this source code.
  */
 
-import { Knex } from 'knex'
 import { JoinType } from './JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
 import { TransactionContract } from './TransactionContract'
@@ -61,6 +60,20 @@ export interface DriverContract {
   transaction(callback: (trx: any) => Promise<void>): Promise<void>
 
   /**
+   * Commit the transaction
+   *
+   * @param value
+   */
+  commit(value?: any): Promise<any>
+
+  /**
+   * Rollback the transaction
+   *
+   * @param error
+   */
+  rollback(error?: any): Promise<any>
+
+  /**
    * CreateDatabase method
    *
    * @param databaseName The database name to be created
@@ -85,7 +98,7 @@ export interface DriverContract {
    */
   createTable(
     tableName: string,
-    callback: (tableBuilder: Knex.CreateTableBuilder) => void,
+    callback: (tableBuilder: any) => void,
   ): Promise<void>
 
   /**

@@ -7,252 +7,615 @@
  * file that was distributed with this source code.
  */
 
-import { Clients } from '../Clients/Clients'
-import { JoinType } from '../Contracts/JoinType'
+import {
+  ClientSession,
+  Collection,
+  Connection,
+  isValidObjectId,
+  Schema,
+} from 'mongoose'
+import { ObjectID } from 'bson'
+import { Is, paginate } from '@secjs/utils'
 import { Transaction } from '../Utils/Transaction'
 import { PaginatedResponse } from '@secjs/contracts'
-import { PostgresDriverConfigs } from './PostgresDriver'
+import { TableBuilder } from '../Builders/TableBuilder'
+import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
-import { ClientContract } from '../Contracts/ClientContract'
-import { TransactionContract } from '../Contracts/TransactionContract'
+import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
 
 export class MongoDriver implements DriverContract {
-  private client: ClientContract
+  private defaultTable: string
 
-  constructor(connection: string, configs: PostgresDriverConfigs = {}) {
-    // eslint-disable-next-line new-cap
-    this.client = new Clients.mongoose(connection, configs)
+  private client: Connection
+  private session: ClientSession
+  private queryBuilder: Collection
+  private isConnected: boolean
+
+  private readonly configs: any
+  private readonly connection: string
+
+  // This is important only for update and delete queries
+  private _where = {}
+  // This is important to be global in class to manipulate data before some operations
+  private _pipeline = []
+
+  private get where() {
+    const where = { ...this._where }
+
+    this._where = {}
+
+    return where
   }
 
-  setQueryBuilder(query: any) {
-    this.client.setQueryBuilder(query)
+  private get pipeline() {
+    const pipeline = [...this._pipeline]
+
+    this._pipeline = []
+
+    return pipeline
   }
 
-  on(event: string, callback: (...params: any) => void) {
-    this.client.on(event, callback)
+  constructor(
+    client: any | string,
+    configs: any = {},
+    session?: ClientSession,
+  ) {
+    if (Is.String(client)) {
+      this.isConnected = false
+      this.defaultTable = null
+
+      this.configs = configs
+      this.connection = client
+
+      return this
+    }
+
+    this.client = client
+    this.session = session || null
+    this.isConnected = true
+  }
+
+  async commit(): Promise<any | any[]> {
+    const doc = await this.session.commitTransaction()
+    await this.session.endSession()
+
+    this.session = null
+
+    return doc
+  }
+
+  async rollback(): Promise<any | any[]> {
+    if (!this.session) return
+
+    const doc = await this.session.abortTransaction()
+    await this.session.endSession()
+
+    this.session = null
+
+    return doc
   }
 
   async connect(): Promise<void> {
-    await this.client.connect('pg')
+    if (this.isConnected) return
+
+    this.client = await ConnectionResolver.mongoose(
+      this.connection,
+      this.configs,
+    )
+
+    this.isConnected = true
   }
 
-  cloneQuery(): any {
-    return this.client.cloneQuery()
+  on(event: string, callback: (...params: any) => void): void {
+    this.client.on(event, callback)
   }
 
-  async beginTransaction(): Promise<TransactionContract> {
-    const { client, configs, session } = await this.client.beginTransaction()
+  cloneQuery() {
+    return {
+      session: this.session,
+      where: this._where,
+      pipeline: this._pipeline,
+      defaultTable: this.defaultTable,
+      client: this.query(),
+    }
+  }
 
-    // eslint-disable-next-line new-cap
-    return new Transaction(new Clients.mongoose(client, configs, session))
+  async beginTransaction(): Promise<Transaction> {
+    const session = await this.client.startSession()
+
+    session.startTransaction({
+      readConcern: { level: 'snapshot' },
+      writeConcern: { w: 'majority' },
+    })
+
+    return new Transaction(new MongoDriver(this.client, this.configs, session))
   }
 
   async transaction(callback: (trx: any) => Promise<void>): Promise<void> {
-    await this.client.transaction(callback)
+    const trx = await this.client.startSession()
+
+    await trx.withTransaction(callback)
+
+    await trx.endSession()
   }
 
   async createDatabase(databaseName: string): Promise<void> {
-    await this.client.createDatabase(databaseName)
+    const client = await ConnectionResolver.mongoose(this.connection, {
+      database: databaseName,
+    })
+
+    await client.close()
   }
 
   async dropDatabase(databaseName: string): Promise<void> {
-    await this.client.dropDatabase(databaseName)
+    const client = await ConnectionResolver.mongoose(this.connection, {
+      database: databaseName,
+    })
+
+    await client.dropDatabase()
+    await client.close()
   }
 
   async createTable(
     tableName: string,
-    callback: (tableBuilder: any) => void,
+    callback: (tableBuilder: TableBuilder) => any,
   ): Promise<void> {
-    await this.client.createTable(tableName, callback)
+    // Type dictionary for mongoose schema
+    const typeDictionary = {
+      string: String,
+      integer: Number,
+      date: Date,
+      increments: Schema.Types.ObjectId,
+      boolean: Boolean,
+    }
+
+    const tableBuilder = new TableBuilder()
+
+    // Execute callback to generate columns
+    callback(tableBuilder)
+
+    const transpiledObject = {}
+
+    tableBuilder.toJSON().forEach(column => {
+      transpiledObject[column.columnName] = {
+        type: typeDictionary[column.columnType],
+        index: column.primary,
+        unique: column.unique,
+        default: column.defaultTo,
+        required: !column.nullable,
+      }
+
+      if (column.type === 'enum') {
+        transpiledObject[column.columnName].enum = column.enumValues
+      } else {
+        transpiledObject[column.columnName].maxLength = column.columnLength
+      }
+
+      if (column.references) {
+        transpiledObject[column.columnName].type = typeDictionary.increments
+        transpiledObject[
+          column.columnName
+        ].ref = `${column.references.inTable}.${column.references.columnName}`
+      }
+    })
+
+    const schema = new Schema(transpiledObject)
+
+    await this.client.model(tableName, schema).createCollection()
   }
 
   async dropTable(tableName: string): Promise<void> {
-    await this.client.dropTable(tableName)
+    try {
+      await this.client.dropCollection(tableName)
+    } catch (err) {}
   }
 
-  async avg(column: string): Promise<number> {
-    return this.client.avg(column)
+  async raw(raw: string, queryValues?: any[]): Promise<any> {
+    queryValues.forEach(
+      value => (raw = raw.replace(/(\?\?)|(\?)/, `"${value}"`)),
+    )
+
+    const db = this.client.db
+    // eslint-disable-next-line no-new-func
+    const fn = new Function('db', `return ${raw}`)
+
+    const result = await fn(db)
+
+    const rawSplit = raw.split('.')
+    let command = rawSplit.pop()
+
+    if (command === 'toArray()') command = rawSplit.pop()
+
+    return {
+      command,
+      rowCount: result.length,
+      rows: result,
+    }
   }
 
-  async avgDistinct(column: string): Promise<number> {
-    return this.client.avgDistinct(column)
+  setQueryBuilder(query: any): void {
+    this.session = query.session
+    this._where = query._where
+    this._pipeline = query._pipeline
+    this.defaultTable = query.defaultTable
+
+    if (this.defaultTable) this.queryBuilder = this.query()
   }
 
-  async close(): Promise<void> {
-    await this.client.close()
-  }
+  query(): Collection {
+    if (!this.defaultTable) {
+      throw new InternalServerException(
+        'Table is not set, use buildTable method to set mongo collection.',
+      )
+    }
 
-  async columnInfo(column: string): Promise<any> {
-    return this.client.columnInfo(column)
-  }
-
-  async count(column = '*'): Promise<number> {
-    return this.client.count(column)
-  }
-
-  async countDistinct(column: string): Promise<number> {
-    return this.client.countDistinct(column)
-  }
-
-  async decrement(column: string, value: number) {
-    return this.client.decrement(column, value)
-  }
-
-  async delete(): Promise<number> {
-    return this.client.delete()
+    return this.client.collection(this.defaultTable, { session: this.session })
   }
 
   async find(): Promise<any> {
-    return this.client.find()
+    const data = await this.queryBuilder
+      .aggregate(this.pipeline, { session: this.session })
+      .toArray()
+
+    return data[0]
   }
 
   async findMany(): Promise<any[]> {
-    return this.client.findMany()
-  }
-
-  async forPage(page: number, limit: number): Promise<any[]> {
-    return this.client.forPage(page, limit)
+    return this.queryBuilder
+      .aggregate(this.pipeline, { session: this.session })
+      .toArray()
   }
 
   async insert(values: any | any[]): Promise<string[]> {
-    return this.client.insert(values)
+    if (Is.Array(values)) {
+      const data = await this.queryBuilder.insertMany(values)
+
+      return Object.keys(data.insertedIds).map(key =>
+        data.insertedIds[key].toString(),
+      )
+    }
+
+    const data = await this.queryBuilder.insertOne(values, {
+      session: this.session,
+    })
+
+    return [data.insertedId.toString()]
   }
 
   async insertAndGet(values: any | any[]): Promise<any[]> {
-    return this.client.insertAndGet(values)
+    const arrayOfId = (await this.insert(values)).map(id => new ObjectID(id))
+
+    return this.queryBuilder
+      .find({ _id: { $in: arrayOfId } }, { session: this.session })
+      .toArray()
   }
 
-  async max(column: string): Promise<number> {
-    return this.client.max(column)
+  async update(key: any | string, value?: any): Promise<string[]> {
+    if (typeof key === 'object') {
+      const { modifiedCount } = await this.queryBuilder.updateMany(
+        this._where,
+        { $set: key },
+        { upsert: false },
+      )
+
+      if (!modifiedCount) {
+        this._where = {}
+
+        return []
+      }
+
+      const data = await this.queryBuilder.find(this.where).toArray()
+
+      return data.map(model => model._id.toString())
+    }
+
+    const { modifiedCount } = await this.queryBuilder.updateMany(
+      this._where,
+      { $set: { [key]: value } },
+      { upsert: false },
+    )
+
+    if (!modifiedCount) {
+      this._where = {}
+
+      return []
+    }
+
+    const data = await this.queryBuilder.find(this.where).toArray()
+
+    return data.map(model => model._id.toString())
   }
 
-  async min(column: string): Promise<number> {
-    return this.client.min(column)
+  async updateAndGet(key: any | string, value?: any): Promise<any[]> {
+    if (typeof key === 'object') {
+      const { modifiedCount } = await this.queryBuilder.updateMany(
+        this._where,
+        { $set: key },
+        { upsert: false },
+      )
+
+      if (!modifiedCount) {
+        this._where = {}
+
+        return []
+      }
+
+      return this.queryBuilder.find(this.where).toArray()
+    }
+
+    const { modifiedCount } = await this.queryBuilder.updateMany(
+      this._where,
+      { $set: { [key]: value } },
+      { upsert: false },
+    )
+
+    if (!modifiedCount) {
+      this._where = {}
+
+      return []
+    }
+
+    return this.queryBuilder.find(this.where).toArray()
+  }
+
+  async delete(): Promise<number> {
+    const { deletedCount } = await this.queryBuilder.deleteMany(this.where)
+
+    return deletedCount
+  }
+
+  async truncate(tableName: string): Promise<void> {
+    await this.client.collection(tableName).drop()
+  }
+
+  async forPage(page: number, limit: number): Promise<any[]> {
+    return this.buildSkip(page).buildLimit(limit).findMany()
   }
 
   async paginate(
     page: number,
     limit: number,
-    resourceUrl = '/api',
+    resourceUrl?: string,
   ): Promise<PaginatedResponse<any>> {
-    return this.client.paginate(page, limit, resourceUrl)
+    const data = await this.buildSkip(page).buildLimit(limit).findMany()
+    const count = await this.count()
+
+    return paginate(data, count, { page, limit, resourceUrl })
   }
 
-  async pluck(column: string): Promise<any[]> {
-    return this.client.pluck(column)
+  async count(column = '*'): Promise<number> {
+    const pipeline = []
+    this._pipeline = []
+
+    if (column !== '*') {
+      const match = {
+        $match: {},
+      }
+
+      if (!Is.Empty(this._where)) {
+        match.$match = { ...this.where, [column]: { $ne: null } }
+      } else {
+        match.$match = { [column]: { $ne: null } }
+      }
+
+      pipeline.push(match)
+    }
+
+    pipeline.push({ $group: { _id: null, count: { $sum: 1 } } })
+    pipeline.push({ $project: { _id: 0, count: 1 } })
+
+    const [{ count }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
+
+    return count
   }
 
-  async raw(raw: string, queryValues?: any[]): Promise<any> {
-    return this.client.raw(raw, queryValues)
+  async countDistinct(column = '*'): Promise<number> {
+    const pipeline = []
+    this._pipeline = []
+
+    if (column !== '*') {
+      const match = {
+        $match: {},
+      }
+
+      if (!Is.Empty(this._where)) {
+        match.$match = { ...this.where, [column]: { $ne: null } }
+      } else {
+        match.$match = { [column]: { $ne: null } }
+      }
+
+      pipeline.push(match)
+    }
+
+    pipeline.push({ $group: { _id: null, set: { $addToSet: `$${column}` } } })
+    pipeline.push({ $project: { _id: 0, count: { $size: `$set` } } })
+
+    const [{ count }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
+
+    return count
+  }
+
+  async min(column: string): Promise<number> {
+    const pipeline = []
+    this._pipeline = []
+
+    if (!Is.Empty(this._where)) {
+      pipeline.push(this.where)
+    }
+
+    pipeline.push({ $group: { _id: null, min: { $min: `$${column}` } } })
+    pipeline.push({ $project: { _id: 0, min: 1 } })
+
+    const [{ min }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
+
+    return min
+  }
+
+  async max(column: string): Promise<number> {
+    const pipeline = []
+    this._pipeline = []
+
+    if (!Is.Empty(this._where)) {
+      pipeline.push(this.where)
+    }
+
+    pipeline.push({ $group: { _id: null, max: { $max: `$${column}` } } })
+    pipeline.push({ $project: { _id: 0, max: 1 } })
+
+    const [{ max }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
+
+    return max
   }
 
   async sum(column: string): Promise<number> {
-    return this.client.sum(column)
+    const pipeline = []
+    this._pipeline = []
+
+    if (!Is.Empty(this._where)) {
+      pipeline.push(this.where)
+    }
+
+    pipeline.push({ $group: { _id: null, sum: { $sum: `$${column}` } } })
+    pipeline.push({ $project: { _id: 0, sum: 1 } })
+
+    const [{ sum }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
+
+    return sum
   }
 
   async sumDistinct(column: string): Promise<number> {
-    return this.client.sumDistinct(column)
+    const pipeline = []
+    this._pipeline = []
+
+    if (!Is.Empty(this._where)) {
+      pipeline.push(this.where)
+    }
+
+    pipeline.push({ $group: { _id: null, set: { $addToSet: `$${column}` } } })
+    pipeline.push({ $project: { _id: 0, sum: { $sum: '$set' } } })
+
+    const [{ sum }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
+
+    return sum
   }
 
-  async truncate(tableName: string): Promise<void> {
-    await this.client.truncate(tableName)
+  async avg(column: string): Promise<number> {
+    const pipeline = []
+    this._pipeline = []
+
+    if (!Is.Empty(this._where)) {
+      pipeline.push(this.where)
+    }
+
+    pipeline.push({ $group: { _id: null, avg: { $avg: `$${column}` } } })
+    pipeline.push({ $project: { _id: 0, avg: 1 } })
+
+    const [{ avg }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
+
+    return avg
   }
 
-  async update(key: any, value?: any): Promise<string[]> {
-    return this.client.update(key, value)
+  async avgDistinct(column: string): Promise<number> {
+    const pipeline = []
+    this._pipeline = []
+
+    if (!Is.Empty(this._where)) {
+      pipeline.push(this.where)
+    }
+
+    pipeline.push({ $group: { _id: null, set: { $addToSet: `$${column}` } } })
+    pipeline.push({ $project: { _id: 0, avg: { $avg: '$set' } } })
+
+    const [{ avg }] = await this.queryBuilder
+      .aggregate(pipeline, { session: this.session })
+      .toArray()
+
+    return avg
   }
 
-  async updateAndGet(key: any, value?: any): Promise<any[]> {
-    return this.client.updateAndGet(key, value)
+  async increment(column: string, value: number): Promise<void> {
+    this._pipeline = []
+
+    await this.queryBuilder.updateMany(
+      this.where,
+      { $inc: { [column]: value } },
+      { session: this.session, upsert: false },
+    )
   }
 
-  async increment(column: string, value: number) {
-    return this.client.increment(column, value)
+  async decrement(column: string, value: number): Promise<void> {
+    this._pipeline = []
+
+    await this.queryBuilder.updateMany(
+      this.where,
+      { $inc: { [column]: -value } },
+      { session: this.session, upsert: false },
+    )
   }
 
-  buildDistinct(...columns: string[]): DriverContract {
-    this.client.buildDistinct(...columns)
+  async pluck(column: string): Promise<any[]> {
+    this._pipeline.push({ $project: { _id: 0, [column]: 1 } })
 
-    return this
+    const data = await this.findMany()
+
+    return data.map(data => data[column])
   }
 
-  buildGroupBy(...columns: string[]): DriverContract {
-    this.client.buildGroupBy(...columns)
-
-    return this
+  async columnInfo(): Promise<any> {
+    return {
+      defaultValue: 'null',
+      type: 'any',
+      maxLength: '255',
+      nullable: true,
+    }
   }
 
-  buildGroupByRaw(raw: string, queryValues?: any[]): DriverContract {
-    this.client.buildGroupByRaw(raw, queryValues)
+  async close(): Promise<void> {
+    if (!this.isConnected) return
 
-    return this
+    await this.client.close()
+
+    this.client = null
+    this._where = {}
+    this._pipeline = []
+    this.isConnected = false
+    this.defaultTable = null
+
+    await this.rollback()
   }
 
-  buildHaving(column: string, operator: string, value: any): DriverContract {
-    this.client.buildHaving(column, operator, value)
-
-    return this
-  }
-
-  buildJoin(
-    tableName: string,
-    column1: string,
-    operator: string,
-    column2?: string,
-    joinType: JoinType = 'join',
-  ): DriverContract {
-    this.client.buildJoin(tableName, column1, operator, column2, joinType)
-
-    return this
-  }
-
-  buildJoinRaw(raw: string, queryValues?: any[]): DriverContract {
-    this.client.buildJoinRaw(raw, queryValues)
-
-    return this
-  }
-
-  buildLimit(number: number): DriverContract {
-    this.client.buildLimit(number)
-
-    return this
-  }
-
-  buildSkip(number: number): DriverContract {
-    this.client.buildSkip(number)
-
-    return this
-  }
-
-  buildOrWhere(
-    statement: string | Record<string, any>,
-    value?: any,
-  ): DriverContract {
-    this.client.buildOrWhere(statement, value)
-
-    return this
-  }
-
-  buildOrderBy(column: string, direction?: 'asc' | 'desc'): DriverContract {
-    this.client.buildOrderBy(column, direction)
-
-    return this
-  }
-
-  buildOrderByRaw(raw: string, queryValues?: any[]): DriverContract {
-    this.client.buildOrderByRaw(raw, queryValues)
+  buildTable(tableName: string): DriverContract {
+    this.defaultTable = tableName
+    this.queryBuilder = this.query()
 
     return this
   }
 
   buildSelect(...columns: string[]): DriverContract {
-    this.client.buildSelect(...columns)
+    const project = columns.reduce(
+      (previous, column) => {
+        previous.$project[column] = 1
 
-    return this
-  }
+        return previous
+      },
+      { $project: {} },
+    )
 
-  buildTable(tableName: string): DriverContract {
-    this.client.buildTable(tableName)
+    this._pipeline.push(project)
 
     return this
   }
@@ -261,7 +624,23 @@ export class MongoDriver implements DriverContract {
     statement: string | Record<string, any>,
     value?: any,
   ): DriverContract {
-    this.client.buildWhere(statement, value)
+    if (typeof statement === 'string') {
+      if (isValidObjectId(value) && Is.String(value)) {
+        value = new ObjectID(value)
+      }
+
+      this._where[statement] = value
+      this._pipeline.push({ $match: this._where })
+
+      return this
+    }
+
+    this._where = {
+      ...this._where,
+      ...statement,
+    }
+
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
@@ -270,7 +649,17 @@ export class MongoDriver implements DriverContract {
     statement: string | Record<string, any>,
     value?: any,
   ): DriverContract {
-    this.client.buildWhereLike(statement, value)
+    if (typeof statement === 'string') {
+      this._where[statement] = { $regex: value }
+      this._pipeline.push({ $match: this._where })
+
+      return this
+    }
+
+    this._where = {
+      ...this._where,
+      ...statement,
+    }
 
     return this
   }
@@ -279,25 +668,39 @@ export class MongoDriver implements DriverContract {
     statement: string | Record<string, any>,
     value?: any,
   ): DriverContract {
-    this.client.buildWhereILike(statement, value)
+    if (typeof statement === 'string') {
+      this._where[statement] = { $regex: value, $options: 'i' }
+      this._pipeline.push({ $match: this._where })
+
+      return this
+    }
+
+    this._where = {
+      ...this._where,
+      ...statement,
+    }
+
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
-  buildWhereBetween(columnName: string, values: [any, any]): DriverContract {
-    this.client.buildWhereBetween(columnName, values)
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): DriverContract {
+    if (typeof statement === 'string') {
+      this._where[statement] = { $or: value }
+      this._pipeline.push({ $match: this._where })
 
-    return this
-  }
+      return this
+    }
 
-  buildWhereExists(callback: any): DriverContract {
-    this.client.buildWhereExists(callback)
-
-    return this
-  }
-
-  buildWhereIn(columnName: string, values: any[]): DriverContract {
-    this.client.buildWhereIn(columnName, values)
+    this._where = {
+      ...this._where,
+      ...statement,
+    }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
@@ -306,43 +709,203 @@ export class MongoDriver implements DriverContract {
     statement: string | Record<string, any>,
     value?: any,
   ): DriverContract {
-    this.client.buildWhereNot(statement, value)
+    if (typeof statement === 'string') {
+      this._where[statement] = { $not: value }
+      this._pipeline.push({ $match: this._where })
+
+      return this
+    }
+
+    this._where = {
+      ...this._where,
+      ...statement,
+    }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
-  buildWhereNotBetween(columnName: string, values: [any, any]): DriverContract {
-    this.client.buildWhereNotBetween(columnName, values)
-
-    return this
-  }
-
-  buildWhereNotExists(callback: any): DriverContract {
-    this.client.buildWhereNotExists(callback)
+  buildWhereIn(columnName: string, values: any[]): DriverContract {
+    this._where[columnName] = { $in: values }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereNotIn(columnName: string, values: any[]): DriverContract {
-    this.client.buildWhereNotIn(columnName, values)
+    this._where[columnName] = { $nin: values }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereNull(columnName: string): DriverContract {
-    this.client.buildWhereNull(columnName)
+    this._where[columnName] = null
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
   buildWhereNotNull(columnName: string): DriverContract {
-    this.client.buildWhereNotNull(columnName)
+    this._where[columnName] = { $ne: null }
+    this._pipeline.push({ $match: this._where })
 
     return this
   }
 
-  buildWhereRaw(raw: string, queryValues?: any[]): DriverContract {
-    this.client.buildWhereRaw(raw, queryValues)
+  buildWhereExists(callback: any): DriverContract {
+    this._where[callback] = { $exists: true }
+    this._pipeline.push({ $match: this._where })
+
+    return this
+  }
+
+  buildWhereNotExists(callback: any): DriverContract {
+    this._where[callback] = { $exists: false }
+    this._pipeline.push({ $match: this._where })
+
+    return this
+  }
+
+  buildWhereBetween(columnName: string, values: [any, any]): DriverContract {
+    this._where[columnName] = { $gte: values[0], $lte: values[1] }
+    this._pipeline.push({ $match: this._where })
+
+    return this
+  }
+
+  buildWhereNotBetween(columnName: string, values: [any, any]): DriverContract {
+    this._where[columnName] = { $not: { $gte: values[0], $lte: values[1] } }
+    this._pipeline.push({ $match: this._where })
+
+    return this
+  }
+
+  buildWhereRaw(): DriverContract {
+    console.log(
+      `Method ${this.buildWhereRaw.name} has not been implemented in ${MongoDriver.name}`,
+    )
+
+    return this
+  }
+
+  buildJoin(
+    tableName: string,
+    column1: string,
+    operator: string,
+    column2: string,
+  ): DriverContract {
+    let foreignField = column2 || operator
+
+    if (foreignField.includes('.')) {
+      const [table, column] = foreignField.split('.')
+
+      if (table !== tableName)
+        throw new InternalServerException(
+          `Property ${foreignField} should join in ${tableName}`,
+        )
+
+      foreignField = column
+    }
+
+    let localField = column1
+
+    if (localField.includes('.')) {
+      localField = localField.split('.')[1]
+    }
+
+    this._pipeline.push({
+      $lookup: { from: tableName, localField, foreignField, as: tableName },
+    })
+
+    return this
+  }
+
+  buildJoinRaw(): DriverContract {
+    console.log(
+      `Method ${this.buildJoinRaw.name} has not been implemented in ${MongoDriver.name}`,
+    )
+
+    return this
+  }
+
+  buildDistinct(...columns: string[]): DriverContract {
+    const project = columns.reduce(
+      (previous, column) => {
+        previous.$project[column] = -1
+
+        return previous
+      },
+      { $project: {} },
+    )
+
+    this._pipeline.push(project)
+
+    return this
+  }
+
+  buildGroupBy(...columns: string[]): DriverContract {
+    const group = {
+      $group: {
+        _id: {},
+      },
+    }
+
+    columns.forEach(column => {
+      group.$group._id[column] = `$${column}`
+    })
+
+    this._pipeline.push(group)
+    this._pipeline.push({ $replaceRoot: { newRoot: '$_id' } })
+
+    return this
+  }
+
+  buildGroupByRaw(): DriverContract {
+    console.log(
+      `Method ${this.buildGroupByRaw.name} has not been implemented in ${MongoDriver.name}`,
+    )
+
+    return this
+  }
+
+  buildOrderBy(column: string, direction?: 'asc' | 'desc'): DriverContract {
+    this._pipeline.push({ $sort: { [column]: direction === 'asc' ? 1 : -1 } })
+
+    return this
+  }
+
+  buildOrderByRaw(): DriverContract {
+    console.log(
+      `Method ${this.buildOrderByRaw.name} has not been implemented in ${MongoDriver.name}`,
+    )
+
+    return this
+  }
+
+  buildHaving(column: string, operator: string, value: any): DriverContract {
+    const operatorDictionary = {
+      '>=': { $gte: value },
+      '<=': { $lte: value },
+      '>': { $gt: value },
+      '<': { $lt: value },
+      '=': value,
+    }
+
+    this._where[column] = operatorDictionary[operator]
+    this._pipeline.push({ $match: this._where })
+
+    return this
+  }
+
+  buildSkip(number: number): DriverContract {
+    this._pipeline.push({ $skip: number })
+
+    return this
+  }
+
+  buildLimit(number: number): DriverContract {
+    this._pipeline.push({ $limit: number })
 
     return this
   }

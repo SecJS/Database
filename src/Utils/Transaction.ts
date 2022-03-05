@@ -9,140 +9,148 @@
 
 import { JoinType } from '../Contracts/JoinType'
 import { PaginatedResponse } from '@secjs/contracts'
-import { ClientContract } from '../Contracts/ClientContract'
+import { DriverContract } from '../Contracts/DriverContract'
 import { TransactionContract } from '../Contracts/TransactionContract'
 
 export class Transaction implements TransactionContract {
-  private client: ClientContract
+  private driver: DriverContract
 
-  constructor(client: ClientContract) {
-    this.client = client
+  constructor(driver: DriverContract) {
+    this.driver = driver
   }
 
   // Transaction Methods
 
   async commit(value?: any): Promise<any> {
-    return this.client.commit(value)
+    return this.driver.commit(value)
   }
 
   async rollback(error?: any): Promise<any> {
-    return this.client.rollback(error)
+    return this.driver.rollback(error)
   }
 
-  // KnexClient Methods
+  // Driver Methods
 
   async avg(column: string): Promise<number> {
-    return this.client.avg(column)
+    return this.driver.avg(column)
   }
 
   async avgDistinct(column: string): Promise<number> {
-    return this.client.avgDistinct(column)
+    return this.driver.avgDistinct(column)
   }
 
   async columnInfo(column: string): Promise<any> {
-    return this.client.columnInfo(column)
+    return this.driver.columnInfo(column)
   }
 
   async count(column = '*'): Promise<number> {
-    return this.client.count(column)
+    return this.driver.count(column)
   }
 
   async countDistinct(column: string): Promise<number> {
-    return this.client.countDistinct(column)
+    return this.driver.countDistinct(column)
   }
 
   async decrement(column: string, value: number) {
-    return this.client.decrement(column, value)
+    return this.driver.decrement(column, value)
   }
 
   async delete(): Promise<number> {
-    return this.client.delete()
+    return this.driver.delete()
   }
 
   async find(): Promise<any> {
-    return this.client.find()
+    return this.driver.find()
   }
 
   async findMany(): Promise<any[]> {
-    return this.client.findMany()
+    return this.driver.findMany()
   }
 
   async forPage(page: number, limit: number): Promise<any[]> {
-    return this.client.forPage(page, limit)
+    return this.driver.forPage(page, limit)
   }
 
   async insert(values: any | any[]): Promise<string[]> {
-    return this.client.insert(values)
+    return this.driver.insert(values)
   }
 
   async insertAndGet(values: any | any[]): Promise<any[]> {
-    return this.client.insertAndGet(values)
+    return this.driver.insertAndGet(values)
   }
 
   async max(column: string): Promise<number> {
-    return this.client.max(column)
+    return this.driver.max(column)
   }
 
   async min(column: string): Promise<number> {
-    return this.client.min(column)
+    return this.driver.min(column)
   }
 
-  async paginate(page: number, limit: number, resourceUrl = '/api'): Promise<PaginatedResponse<any>> {
-    return this.client.paginate(page, limit, resourceUrl)
+  async paginate(
+    page: number,
+    limit: number,
+    resourceUrl = '/api',
+  ): Promise<PaginatedResponse<any>> {
+    return this.driver.paginate(page, limit, resourceUrl)
   }
 
   async pluck(column: string): Promise<any[]> {
-    return this.client.pluck(column)
+    return this.driver.pluck(column)
   }
 
   async raw(raw: string, queryValues?: any[]): Promise<any> {
-    return this.client.raw(raw, queryValues)
+    return this.driver.raw(raw, queryValues)
   }
 
   async sum(column: string): Promise<number> {
-    return this.client.sum(column)
+    return this.driver.sum(column)
   }
 
   async sumDistinct(column: string): Promise<number> {
-    return this.client.sumDistinct(column)
+    return this.driver.sumDistinct(column)
   }
 
   async truncate(tableName: string): Promise<void> {
-    await this.client.truncate(tableName)
+    await this.driver.truncate(tableName)
   }
 
   async update(key: any, value?: any): Promise<string[]> {
-    return this.client.update(key, value)
+    return this.driver.update(key, value)
   }
 
   async updateAndGet(key: any, value?: any): Promise<any[]> {
-    return this.client.updateAndGet(key, value)
+    return this.driver.updateAndGet(key, value)
   }
 
   async increment(column: string, value: number) {
-    return this.client.increment(column, value)
+    return this.driver.increment(column, value)
   }
 
   buildDistinct(...columns: string[]): TransactionContract {
-    this.client.buildDistinct(...columns)
+    this.driver.buildDistinct(...columns)
 
     return this
   }
 
   buildGroupBy(...columns: string[]): TransactionContract {
-    this.client.buildGroupBy(...columns)
+    this.driver.buildGroupBy(...columns)
 
     return this
   }
 
   buildGroupByRaw(raw: string, queryValues?: any[]): TransactionContract {
-    this.client.buildGroupByRaw(raw, queryValues)
+    this.driver.buildGroupByRaw(raw, queryValues)
 
     return this
   }
 
-  buildHaving(column: string, operator: string, value: any): TransactionContract {
-    this.client.buildHaving(column, operator, value)
+  buildHaving(
+    column: string,
+    operator: string,
+    value: any,
+  ): TransactionContract {
+    this.driver.buildHaving(column, operator, value)
 
     return this
   }
@@ -154,133 +162,157 @@ export class Transaction implements TransactionContract {
     column2?: string,
     joinType: JoinType = 'join',
   ): TransactionContract {
-    this.client.buildJoin(tableName, column1, operator, column2, joinType)
+    this.driver.buildJoin(tableName, column1, operator, column2, joinType)
 
     return this
   }
 
   buildJoinRaw(raw: string, queryValues?: any[]): TransactionContract {
-    this.client.buildJoinRaw(raw, queryValues)
+    this.driver.buildJoinRaw(raw, queryValues)
 
     return this
   }
 
   buildLimit(number: number): TransactionContract {
-    this.client.buildLimit(number)
+    this.driver.buildLimit(number)
 
     return this
   }
 
   buildSkip(number: number): TransactionContract {
-    this.client.buildSkip(number)
+    this.driver.buildSkip(number)
 
     return this
   }
 
-  buildOrWhere(statement: string | Record<string, any>, value?: any): TransactionContract {
-    this.client.buildOrWhere(statement, value)
+  buildOrWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract {
+    this.driver.buildOrWhere(statement, value)
 
     return this
   }
 
-  buildOrderBy(column: string, direction?: "asc" | "desc"): TransactionContract {
-    this.client.buildOrderBy(column, direction)
+  buildOrderBy(
+    column: string,
+    direction?: 'asc' | 'desc',
+  ): TransactionContract {
+    this.driver.buildOrderBy(column, direction)
 
     return this
   }
 
   buildOrderByRaw(raw: string, queryValues?: any[]): TransactionContract {
-    this.client.buildOrderByRaw(raw, queryValues)
+    this.driver.buildOrderByRaw(raw, queryValues)
 
     return this
   }
 
   buildSelect(...columns: string[]): TransactionContract {
-    this.client.buildSelect(...columns)
+    this.driver.buildSelect(...columns)
 
     return this
   }
 
   buildTable(tableName: string): TransactionContract {
-    this.client.buildTable(tableName)
+    this.driver.buildTable(tableName)
 
     return this
   }
 
-  buildWhere(statement: string | Record<string, any>, value?: any): TransactionContract {
-    this.client.buildWhere(statement, value)
+  buildWhere(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract {
+    this.driver.buildWhere(statement, value)
 
     return this
   }
 
-  buildWhereLike(statement: string | Record<string, any>, value?: any): TransactionContract {
-    this.client.buildWhereLike(statement, value)
+  buildWhereLike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract {
+    this.driver.buildWhereLike(statement, value)
 
     return this
   }
 
-  buildWhereILike(statement: string | Record<string, any>, value?: any): TransactionContract {
-    this.client.buildWhereILike(statement, value)
+  buildWhereILike(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract {
+    this.driver.buildWhereILike(statement, value)
 
     return this
   }
 
-  buildWhereBetween(columnName: string, values: [any, any]): TransactionContract {
-    this.client.buildWhereBetween(columnName, values)
+  buildWhereBetween(
+    columnName: string,
+    values: [any, any],
+  ): TransactionContract {
+    this.driver.buildWhereBetween(columnName, values)
 
     return this
   }
 
   buildWhereExists(callback: any): TransactionContract {
-    this.client.buildWhereExists(callback)
+    this.driver.buildWhereExists(callback)
 
     return this
   }
 
   buildWhereIn(columnName: string, values: any[]): TransactionContract {
-    this.client.buildWhereIn(columnName, values)
+    this.driver.buildWhereIn(columnName, values)
 
     return this
   }
 
-  buildWhereNot(statement: string | Record<string, any>, value?: any): TransactionContract {
-    this.client.buildWhereNot(statement, value)
+  buildWhereNot(
+    statement: string | Record<string, any>,
+    value?: any,
+  ): TransactionContract {
+    this.driver.buildWhereNot(statement, value)
 
     return this
   }
 
-  buildWhereNotBetween(columnName: string, values: [any, any]): TransactionContract {
-    this.client.buildWhereNotBetween(columnName, values)
+  buildWhereNotBetween(
+    columnName: string,
+    values: [any, any],
+  ): TransactionContract {
+    this.driver.buildWhereNotBetween(columnName, values)
 
     return this
   }
 
   buildWhereNotExists(callback: any): TransactionContract {
-    this.client.buildWhereNotExists(callback)
+    this.driver.buildWhereNotExists(callback)
 
     return this
   }
 
   buildWhereNotIn(columnName: string, values: any[]): TransactionContract {
-    this.client.buildWhereNotIn(columnName, values)
+    this.driver.buildWhereNotIn(columnName, values)
 
     return this
   }
 
   buildWhereNull(columnName: string): TransactionContract {
-    this.client.buildWhereNull(columnName)
+    this.driver.buildWhereNull(columnName)
 
     return this
   }
 
   buildWhereNotNull(columnName: string): TransactionContract {
-    this.client.buildWhereNotNull(columnName)
+    this.driver.buildWhereNotNull(columnName)
 
     return this
   }
 
   buildWhereRaw(raw: string, queryValues?: any[]): TransactionContract {
-    this.client.buildWhereRaw(raw, queryValues)
+    this.driver.buildWhereRaw(raw, queryValues)
 
     return this
   }
