@@ -20,7 +20,7 @@ import { Transaction } from '../Utils/Transaction'
 import { TableBuilder } from '../Builders/TableBuilder'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
-import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
+import { ConnectionResolver } from '../Utils/ConnectionResolver'
 
 export class MongoDriver implements DriverContract {
   private defaultTable: string

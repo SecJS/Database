@@ -12,7 +12,7 @@ import { paginate, PaginatedResponse } from '@secjs/utils'
 import { Transaction } from '../Utils/Transaction'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
-import { ConnectionResolver } from '../Resolvers/ConnectionResolver'
+import { ConnectionResolver } from '../Utils/ConnectionResolver'
 
 export class SqliteDriver implements DriverContract {
   private isConnected: boolean
