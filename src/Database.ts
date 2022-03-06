@@ -11,10 +11,10 @@ import {
   InternalServerException,
   NotImplementedException,
 } from '@secjs/exceptions'
-import { Config } from '@secjs/config'
+
 import { Drivers } from './Drivers/Drivers'
 import { JoinType } from './Contracts/JoinType'
-import { PaginatedResponse } from '@secjs/utils'
+import { Config, PaginatedResponse } from '@secjs/utils'
 import { DriverContract } from './Contracts/DriverContract'
 import { DatabaseContract } from './Contracts/DatabaseContract'
 import { TransactionContract } from './Contracts/TransactionContract'
