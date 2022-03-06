@@ -1,6 +1,6 @@
 {
   "name": "@secjs/database",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Handle your application database with factories, seeders and query builder in Node.js",
   "license": "MIT",
   "author": "João Lenon <lenon@secjs.com.br>",
@@ -24,10 +24,9 @@
     "query-builder"
   ],
   "devDependencies": {
-    "@secjs/config": "1.1.4",
     "@secjs/env": "1.2.8",
     "@secjs/exceptions": "1.0.4",
-    "@secjs/utils": "1.7.3",
+    "@secjs/utils": "1.7.6",
     "@types/jest": "27.0.1",
     "@types/knex": "0.16.1",
     "@types/mime-types": "2.1.1",

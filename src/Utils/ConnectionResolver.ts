@@ -8,9 +8,8 @@
  */
 
 import knex, { Knex } from 'knex'
-import { Config } from '@secjs/config'
-import { Parser } from '@secjs/utils'
 import { createConnection } from 'mongoose'
+import { Config, Parser } from '@secjs/utils'
 import { InternalServerException } from '@secjs/exceptions'
 
 export class ConnectionResolver {

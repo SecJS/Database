@@ -11,10 +11,10 @@ import {
   InternalServerException,
   NotImplementedException,
 } from '@secjs/exceptions'
-import { Config } from '@secjs/config'
+
 import { Drivers } from './Drivers/Drivers'
 import { JoinType } from './Contracts/JoinType'
-import { PaginatedResponse } from '@secjs/utils'
+import { Config, PaginatedResponse, Path } from '@secjs/utils'
 import { DriverContract } from './Contracts/DriverContract'
 import { DatabaseContract } from './Contracts/DatabaseContract'
 import { TransactionContract } from './Contracts/TransactionContract'
@@ -66,6 +66,8 @@ export class Database implements DatabaseContract {
   }
 
   constructor(runtimeConfig: any = {}) {
+    new Config().safeLoad(Path.config('database'))
+
     this.runtimeConfig = runtimeConfig
     this.driver = this.createDriverInstance()
   }
