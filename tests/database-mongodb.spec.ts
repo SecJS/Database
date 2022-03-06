@@ -9,7 +9,6 @@
 
 import '@secjs/env/src/utils/global'
 
-import { Config, Path } from '@secjs/utils'
 import { Database } from '../src/Database'
 import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import { TableBuilder } from '../src/Builders/TableBuilder'
@@ -40,8 +39,6 @@ describe('\n Database Mongo Class', () => {
     process.env.DB_USERNAME = ''
     process.env.DB_PASSWORD = ''
     process.env.DB_FILENAME = ':memory:'
-
-    await new Config().load(Path.config('database.ts'))
   })
 
   beforeEach(async () => {

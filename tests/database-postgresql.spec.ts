@@ -10,7 +10,6 @@
 import '@secjs/env/src/utils/global'
 
 import { Knex } from 'knex'
-import { Config, Path } from '@secjs/utils'
 import { Database } from '../src/Database'
 import { DatabaseContract } from '../src/Contracts/DatabaseContract'
 
@@ -24,8 +23,6 @@ describe('\n Database PostgreSQL Class', () => {
     process.env.DB_USERNAME = 'postgres'
     process.env.DB_PASSWORD = 'root'
     process.env.DB_FILENAME = ':memory:'
-
-    await new Config().load(Path.config('database.ts'))
   })
 
   beforeEach(async () => {
