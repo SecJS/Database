@@ -39,9 +39,7 @@ describe('\n Database Mongo Class', () => {
     process.env.DB_USERNAME = ''
     process.env.DB_PASSWORD = ''
     process.env.DB_FILENAME = ':memory:'
-  })
 
-  beforeEach(async () => {
     database = await new Database().connection('mongo').connect()
 
     database.buildTable('products')
@@ -56,6 +54,12 @@ describe('\n Database Mongo Class', () => {
       tableBuilder.string('productId').notNullable()
       tableBuilder.string('product').notNullable().references('_id').inTable('products')
     })
+  })
+
+  beforeEach(async () => {
+    database = await new Database().connection('mongo').connect()
+
+    database.buildTable('products')
   })
 
   it('should insert new products to the database', async () => {
@@ -126,7 +130,7 @@ describe('\n Database Mongo Class', () => {
   it('should be able to create and drop databases from different instances', async () => {
     await database.createDatabase('new-database')
 
-    const newDb = await new Database().connection('mongo', { database: 'new-database' }).connect()
+    const newDb = await new Database().connection('mongo', { database: 'new-database' }).connect(true, false)
 
     await newDb.createTable('products', () => ({
       name: { type: String, required: true },
@@ -189,8 +193,6 @@ describe('\n Database Mongo Class', () => {
 
     // This should insert in products table because of database.buildTable
     const arrayOfIds = await clonedDatabase.insert({ name: 'AirPods 2' })
-
-    await clonedDatabase.close()
 
     expect(arrayOfIds.length).toBe(1)
   })
@@ -379,13 +381,14 @@ describe('\n Database Mongo Class', () => {
     expect(iphones[5].quantity).toBe(-40)
   })
 
-  afterAll(async () => {
-    await replset.stop()
-  })
-
   afterEach(async () => {
     await database.dropTable('product_details')
     await database.dropTable('products')
-    await database.close()
+  })
+
+  afterAll(async () => {
+    await Database.closeConnections('sqlite', 'mongo')
+
+    await replset.stop()
   })
 })

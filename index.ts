@@ -17,6 +17,7 @@ export * from './src/Builders/ColumnBuilder'
 export * from './src/Builders/ReferenceColumnBuilder'
 
 export * from './src/Utils/Transaction'
-export * from './src/Utils/ConnectionResolver'
+export * from './src/Utils/DriverFactory'
+export * from './src/Utils/ConnectionFactory'
 
 export * from './src/Database'

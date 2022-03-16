@@ -7,15 +7,10 @@
  * file that was distributed with this source code.
  */
 
-import {
-  InternalServerException,
-  NotImplementedException,
-} from '@secjs/exceptions'
-
-import { Drivers } from './Drivers/Drivers'
 import { JoinType } from './Contracts/JoinType'
-import { Config, PaginatedResponse, Path } from '@secjs/utils'
+import { DriverFactory } from './Utils/DriverFactory'
 import { DriverContract } from './Contracts/DriverContract'
+import { Config, PaginatedResponse, Path } from '@secjs/utils'
 import { DatabaseContract } from './Contracts/DatabaseContract'
 import { TransactionContract } from './Contracts/TransactionContract'
 
@@ -24,71 +19,65 @@ export class Database implements DatabaseContract {
   private connectionName: string
   private driver: DriverContract
 
-  static build(
-    name: string,
-    driver: new (connection: string, configs?: any) => DriverContract,
-  ) {
-    if (Drivers[name])
-      throw new InternalServerException(`Driver ${name} already exists`)
-
-    Drivers[name] = driver
-  }
-
-  static get drivers(): string[] {
-    return Object.keys(Drivers)
-  }
-
-  private createDriverInstance(connectionName?: string) {
-    connectionName = connectionName || Config.get('database.default')
-
-    const connectionConfig = Config.get(
-      `database.connections.${connectionName}`,
-    )
-
-    if (!connectionConfig) {
-      throw new NotImplementedException(
-        `Connection ${connectionName} is not configured inside database.connections object from config/database file`,
-      )
-    }
-
-    if (!Drivers[connectionConfig.driver]) {
-      throw new NotImplementedException(
-        `Driver ${connectionConfig.driver} does not exist, use Database.build method to create a new driver`,
-      )
-    }
-
-    this.connectionName = connectionName
-
-    return new Drivers[connectionConfig.driver](
-      connectionName,
-      this.runtimeConfig,
-    )
-  }
-
   constructor(runtimeConfig: any = {}) {
     new Config().safeLoad(Path.config('database'))
 
     this.runtimeConfig = runtimeConfig
-    this.driver = this.createDriverInstance()
+    this.connectionName = 'default'
+    this.driver = DriverFactory.fabricate('default', runtimeConfig)
   }
+
+  static get drivers(): string[] {
+    return DriverFactory.availableDrivers()
+  }
+
+  static build(
+    name: string,
+    driver: new (connection: string, configs?: any) => DriverContract,
+  ) {
+    DriverFactory.createDriver(name, driver)
+  }
+
+  static async openConnections(...connections: string[]): Promise<void> {
+    const promises = connections.map(connection =>
+      DriverFactory.generateConnectionClient(connection, {}, true),
+    )
+
+    await Promise.all(promises)
+  }
+
+  static async closeConnections(...connections: string[]): Promise<void> {
+    const promises = connections.map(connection =>
+      DriverFactory.closeConnection(connection),
+    )
+
+    await Promise.all(promises)
+  }
+
+  static async closeAllDrivers(): Promise<void> {
+    return DriverFactory.closeAllDriversConnection()
+  }
+
+  // DriverContract Methods
 
   connection(connection: string, runtimeConfig: any = {}): DatabaseContract {
     this.runtimeConfig = runtimeConfig
 
-    this.driver.close()
-    this.driver = this.createDriverInstance(connection)
+    this.connectionName = connection
+    this.driver = DriverFactory.fabricate(connection, runtimeConfig)
 
     return this
   }
-
-  // DriverContract Methods
 
   setQueryBuilder(query: any): void {
     this.driver.setQueryBuilder(query)
   }
 
-  async connect(): Promise<DatabaseContract> {
-    await this.driver.connect()
+  async connect(
+    force?: boolean,
+    saveOnDriver?: boolean,
+  ): Promise<DatabaseContract> {
+    await this.driver.connect(force, saveOnDriver)
 
     return this
   }
@@ -101,10 +90,10 @@ export class Database implements DatabaseContract {
     return this.driver.cloneQuery()
   }
 
-  async clone(): Promise<DatabaseContract> {
-    const database: any = await new Database()
-      .connection(this.connectionName)
-      .connect()
+  clone(connection?: string): DatabaseContract {
+    const database: any = new Database().connection(
+      connection || this.connectionName,
+    )
 
     database.setQueryBuilder(this.cloneQuery())
 

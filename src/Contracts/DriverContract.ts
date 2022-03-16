@@ -20,7 +20,7 @@ export interface DriverContract {
    * The most important method from drivers. Creates the connection with database
    *
    */
-  connect(): Promise<void>
+  connect(force?: boolean, saveOnDriver?: boolean): Promise<void>
 
   /**
    * On method

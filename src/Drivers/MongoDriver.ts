@@ -15,44 +15,21 @@ import {
   Schema,
 } from 'mongoose'
 import { ObjectID } from 'bson'
-import { Is, paginate, PaginatedResponse } from '@secjs/utils'
 import { Transaction } from '../Utils/Transaction'
+import { DriverFactory } from '../Utils/DriverFactory'
 import { TableBuilder } from '../Builders/TableBuilder'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
-import { ConnectionResolver } from '../Utils/ConnectionResolver'
+import { Is, paginate, PaginatedResponse } from '@secjs/utils'
 
 export class MongoDriver implements DriverContract {
   private defaultTable: string
 
   private client: Connection
   private session: ClientSession
-  private queryBuilder: Collection
   private isConnected: boolean
-
   private readonly configs: any
   private readonly connection: string
-
-  // This is important only for update and delete queries
-  private _where = {}
-  // This is important to be global in class to manipulate data before some operations
-  private _pipeline = []
-
-  private get where() {
-    const where = { ...this._where }
-
-    this._where = {}
-
-    return where
-  }
-
-  private get pipeline() {
-    const pipeline = [...this._pipeline]
-
-    this._pipeline = []
-
-    return pipeline
-  }
 
   constructor(
     client: any | string,
@@ -72,6 +49,40 @@ export class MongoDriver implements DriverContract {
     this.client = client
     this.session = session || null
     this.isConnected = true
+  }
+
+  private _queryBuilder: Collection
+
+  private get queryBuilder() {
+    if (!this._queryBuilder) {
+      throw new InternalServerException(
+        `Query builder does not exist in ${MongoDriver.name}, this usually happens when you don't have called connect method to create the connection with database`,
+      )
+    }
+
+    return this._queryBuilder
+  }
+
+  // This is important only for update and delete queries
+  private _where = {}
+
+  private get where() {
+    const where = { ...this._where }
+
+    this._where = {}
+
+    return where
+  }
+
+  // This is important to be global in class to manipulate data before some operations
+  private _pipeline = []
+
+  private get pipeline() {
+    const pipeline = [...this._pipeline]
+
+    this._pipeline = []
+
+    return pipeline
   }
 
   async commit(): Promise<any | any[]> {
@@ -94,12 +105,14 @@ export class MongoDriver implements DriverContract {
     return doc
   }
 
-  async connect(): Promise<void> {
-    if (this.isConnected) return
+  async connect(force = false, saveOnDriver = true): Promise<void> {
+    if (this.isConnected && !force) return
 
-    this.client = await ConnectionResolver.mongoose(
+    this.client = await DriverFactory.generateDriverClient(
+      'mongo',
       this.connection,
       this.configs,
+      saveOnDriver,
     )
 
     this.isConnected = true
@@ -136,17 +149,27 @@ export class MongoDriver implements DriverContract {
   }
 
   async createDatabase(databaseName: string): Promise<void> {
-    const client = await ConnectionResolver.mongoose(this.connection, {
-      database: databaseName,
-    })
+    const client = await DriverFactory.generateDriverClient(
+      'mongo',
+      this.connection,
+      {
+        database: databaseName,
+      },
+      false,
+    )
 
     await client.close()
   }
 
   async dropDatabase(databaseName: string): Promise<void> {
-    const client = await ConnectionResolver.mongoose(this.connection, {
-      database: databaseName,
-    })
+    const client = await DriverFactory.generateDriverClient(
+      'mongo',
+      this.connection,
+      {
+        database: databaseName,
+      },
+      false,
+    )
 
     await client.dropDatabase()
     await client.close()
@@ -235,7 +258,7 @@ export class MongoDriver implements DriverContract {
     this._pipeline = query._pipeline
     this.defaultTable = query.defaultTable
 
-    if (this.defaultTable) this.queryBuilder = this.query()
+    if (this.defaultTable) this._queryBuilder = this.query()
   }
 
   query(): Collection {
@@ -596,7 +619,7 @@ export class MongoDriver implements DriverContract {
 
   buildTable(tableName: string): DriverContract {
     this.defaultTable = tableName
-    this.queryBuilder = this.query()
+    this._queryBuilder = this.query()
 
     return this
   }
