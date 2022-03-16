@@ -10,22 +10,21 @@
 import { Knex } from 'knex'
 import { Transaction } from '../Utils/Transaction'
 import { DriverFactory } from '../Utils/DriverFactory'
-import { paginate, PaginatedResponse } from '@secjs/utils'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
+import { Is, paginate, PaginatedResponse } from '@secjs/utils'
 
 export class SqlServerDriver implements DriverContract {
   private isConnected: boolean
   private defaultTable: string
 
   private client: Knex | Knex.Transaction
-  private queryBuilder: Knex.QueryBuilder
 
   private readonly configs: any
   private readonly connection: string
 
   constructor(client?: Knex | Knex.Transaction | string, configs?: any) {
-    if (typeof client === 'string') {
+    if (Is.String(client)) {
       this.isConnected = false
       this.defaultTable = null
 
@@ -37,11 +36,23 @@ export class SqlServerDriver implements DriverContract {
 
     this.client = client
     this.isConnected = true
-    this.queryBuilder = this.query()
+    this._queryBuilder = this.query()
+  }
+
+  private _queryBuilder: Knex.QueryBuilder
+
+  private get queryBuilder() {
+    if (!this._queryBuilder) {
+      throw new InternalServerException(
+        `Query builder does not exist in ${SqlServerDriver.name}, this usually happens when you don't have called connect method to create the connection with database`,
+      )
+    }
+
+    return this._queryBuilder
   }
 
   setQueryBuilder(query: any) {
-    this.queryBuilder = query.client
+    this._queryBuilder = query.client
   }
 
   query() {
@@ -71,7 +82,7 @@ export class SqlServerDriver implements DriverContract {
         ]
 
         if (protectedMethods.includes(propertyKey)) {
-          this.queryBuilder = this.query()
+          this._queryBuilder = this.query()
         }
 
         return target[propertyKey]
@@ -92,7 +103,7 @@ export class SqlServerDriver implements DriverContract {
     const committedTrx = await client.commit(value)
 
     this.client = null
-    this.queryBuilder = null
+    this._queryBuilder = null
 
     return committedTrx
   }
@@ -108,7 +119,7 @@ export class SqlServerDriver implements DriverContract {
     const rolledBackTrx = await client.rollback(error)
 
     this.client = null
-    this.queryBuilder = null
+    this._queryBuilder = null
 
     return rolledBackTrx
   }
@@ -126,7 +137,7 @@ export class SqlServerDriver implements DriverContract {
       this.configs,
       saveOnDriver,
     )
-    this.queryBuilder = this.query()
+    this._queryBuilder = this.query()
 
     this.isConnected = true
   }
@@ -189,7 +200,7 @@ export class SqlServerDriver implements DriverContract {
 
     this.client = null
     this.isConnected = false
-    this.queryBuilder = null
+    this._queryBuilder = null
     this.defaultTable = null
   }
 
@@ -220,7 +231,7 @@ export class SqlServerDriver implements DriverContract {
   async findMany(): Promise<any[]> {
     const data = await this.queryBuilder
 
-    this.queryBuilder = this.query()
+    this._queryBuilder = this.query()
 
     return data
   }
@@ -316,25 +327,25 @@ export class SqlServerDriver implements DriverContract {
   }
 
   buildDistinct(...columns: string[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.distinct(...columns)
+    this._queryBuilder = this.queryBuilder.distinct(...columns)
 
     return this
   }
 
   buildGroupBy(...columns: string[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.groupBy(...columns)
+    this._queryBuilder = this.queryBuilder.groupBy(...columns)
 
     return this
   }
 
   buildGroupByRaw(raw: string, queryValues?: any[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
+    this._queryBuilder = this.queryBuilder.groupByRaw(raw, queryValues)
 
     return this
   }
 
   buildHaving(column: string, operator: string, value: any): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.having(column, operator, value)
+    this._queryBuilder = this.queryBuilder.having(column, operator, value)
 
     return this
   }
@@ -347,13 +358,13 @@ export class SqlServerDriver implements DriverContract {
     joinType = 'join',
   ): SqlServerDriver {
     if (operator && !column2)
-      this.queryBuilder = this.queryBuilder[joinType](
+      this._queryBuilder = this.queryBuilder[joinType](
         tableName,
         column1,
         operator,
       )
     if (tableName && column2)
-      this.queryBuilder = this.queryBuilder[joinType](
+      this._queryBuilder = this.queryBuilder[joinType](
         tableName,
         column1,
         operator,
@@ -364,19 +375,19 @@ export class SqlServerDriver implements DriverContract {
   }
 
   buildJoinRaw(raw: string, queryValues?: any[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
+    this._queryBuilder = this.queryBuilder.joinRaw(raw, queryValues)
 
     return this
   }
 
   buildLimit(number: number): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.limit(number)
+    this._queryBuilder = this.queryBuilder.limit(number)
 
     return this
   }
 
   buildSkip(number: number): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.offset(number)
+    this._queryBuilder = this.queryBuilder.offset(number)
 
     return this
   }
@@ -386,36 +397,36 @@ export class SqlServerDriver implements DriverContract {
     value?: any,
   ): SqlServerDriver {
     if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.where(statement)
+      this._queryBuilder = this.queryBuilder.where(statement)
 
       return this
     }
 
-    this.queryBuilder = this.queryBuilder.where(statement, value)
+    this._queryBuilder = this.queryBuilder.where(statement, value)
 
     return this
   }
 
   buildOrderBy(column: string, direction?: 'asc' | 'desc'): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.orderBy(column, direction)
+    this._queryBuilder = this.queryBuilder.orderBy(column, direction)
 
     return this
   }
 
   buildOrderByRaw(raw: string, queryValues?: any[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
+    this._queryBuilder = this.queryBuilder.orderByRaw(raw, queryValues)
 
     return this
   }
 
   buildSelect(...columns: string[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.select(...columns)
+    this._queryBuilder = this.queryBuilder.select(...columns)
 
     return this
   }
 
   buildTable(tableName: string): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.table(tableName)
+    this._queryBuilder = this.queryBuilder.table(tableName)
 
     this.defaultTable = tableName
 
@@ -427,12 +438,12 @@ export class SqlServerDriver implements DriverContract {
     value?: any,
   ): SqlServerDriver {
     if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.where(statement)
+      this._queryBuilder = this.queryBuilder.where(statement)
 
       return this
     }
 
-    this.queryBuilder = this.queryBuilder.where(statement, value)
+    this._queryBuilder = this.queryBuilder.where(statement, value)
 
     return this
   }
@@ -442,12 +453,12 @@ export class SqlServerDriver implements DriverContract {
     value?: any,
   ): SqlServerDriver {
     if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.whereLike(statement)
+      this._queryBuilder = this.queryBuilder.whereLike(statement)
 
       return this
     }
 
-    this.queryBuilder = this.queryBuilder.whereLike(statement, value)
+    this._queryBuilder = this.queryBuilder.whereLike(statement, value)
 
     return this
   }
@@ -457,30 +468,30 @@ export class SqlServerDriver implements DriverContract {
     value?: any,
   ): SqlServerDriver {
     if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.whereIlike(statement)
+      this._queryBuilder = this.queryBuilder.whereIlike(statement)
 
       return this
     }
 
-    this.queryBuilder = this.queryBuilder.whereIlike(statement, value)
+    this._queryBuilder = this.queryBuilder.whereIlike(statement, value)
 
     return this
   }
 
   buildWhereBetween(columnName: string, values: [any, any]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereBetween(columnName, values)
+    this._queryBuilder = this.queryBuilder.whereBetween(columnName, values)
 
     return this
   }
 
   buildWhereExists(callback: any): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereExists(callback)
+    this._queryBuilder = this.queryBuilder.whereExists(callback)
 
     return this
   }
 
   buildWhereIn(columnName: string, values: any[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereIn(columnName, values)
+    this._queryBuilder = this.queryBuilder.whereIn(columnName, values)
 
     return this
   }
@@ -490,12 +501,12 @@ export class SqlServerDriver implements DriverContract {
     value?: any,
   ): SqlServerDriver {
     if (typeof statement === 'object') {
-      this.queryBuilder = this.queryBuilder.whereNot(statement)
+      this._queryBuilder = this.queryBuilder.whereNot(statement)
 
       return this
     }
 
-    this.queryBuilder = this.queryBuilder.whereNot(statement, value)
+    this._queryBuilder = this.queryBuilder.whereNot(statement, value)
 
     return this
   }
@@ -504,37 +515,37 @@ export class SqlServerDriver implements DriverContract {
     columnName: string,
     values: [any, any],
   ): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereNotBetween(columnName, values)
+    this._queryBuilder = this.queryBuilder.whereNotBetween(columnName, values)
 
     return this
   }
 
   buildWhereNotExists(callback: any): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereNotExists(callback)
+    this._queryBuilder = this.queryBuilder.whereNotExists(callback)
 
     return this
   }
 
   buildWhereNotIn(columnName: string, values: any[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereNotIn(columnName, values)
+    this._queryBuilder = this.queryBuilder.whereNotIn(columnName, values)
 
     return this
   }
 
   buildWhereNull(columnName: string): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereNull(columnName)
+    this._queryBuilder = this.queryBuilder.whereNull(columnName)
 
     return this
   }
 
   buildWhereNotNull(columnName: string): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereNotNull(columnName)
+    this._queryBuilder = this.queryBuilder.whereNotNull(columnName)
 
     return this
   }
 
   buildWhereRaw(raw: string, queryValues?: any[]): SqlServerDriver {
-    this.queryBuilder = this.queryBuilder.whereRaw(raw, queryValues)
+    this._queryBuilder = this.queryBuilder.whereRaw(raw, queryValues)
 
     return this
   }

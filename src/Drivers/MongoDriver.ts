@@ -27,9 +27,7 @@ export class MongoDriver implements DriverContract {
 
   private client: Connection
   private session: ClientSession
-  private queryBuilder: Collection
   private isConnected: boolean
-
   private readonly configs: any
   private readonly connection: string
 
@@ -51,6 +49,18 @@ export class MongoDriver implements DriverContract {
     this.client = client
     this.session = session || null
     this.isConnected = true
+  }
+
+  private _queryBuilder: Collection
+
+  private get queryBuilder() {
+    if (!this._queryBuilder) {
+      throw new InternalServerException(
+        `Query builder does not exist in ${MongoDriver.name}, this usually happens when you don't have called connect method to create the connection with database`,
+      )
+    }
+
+    return this._queryBuilder
   }
 
   // This is important only for update and delete queries
@@ -248,7 +258,7 @@ export class MongoDriver implements DriverContract {
     this._pipeline = query._pipeline
     this.defaultTable = query.defaultTable
 
-    if (this.defaultTable) this.queryBuilder = this.query()
+    if (this.defaultTable) this._queryBuilder = this.query()
   }
 
   query(): Collection {
@@ -609,7 +619,7 @@ export class MongoDriver implements DriverContract {
 
   buildTable(tableName: string): DriverContract {
     this.defaultTable = tableName
-    this.queryBuilder = this.query()
+    this._queryBuilder = this.query()
 
     return this
   }
