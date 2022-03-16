@@ -51,7 +51,7 @@ export interface DatabaseContract {
    * @return Return the actual database chain
    *
    */
-  clone(): DatabaseContract
+  clone(connection?: string): DatabaseContract
 
   /**
    * CloneQuery method
