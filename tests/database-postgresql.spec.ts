@@ -402,6 +402,6 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   afterAll(async () => {
-    await Database.closeDriver('sqlite', 'postgres')
+    await Database.closeConnections('sqlite', 'postgres')
   })
 })

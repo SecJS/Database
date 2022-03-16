@@ -46,9 +46,9 @@ export class Database implements DatabaseContract {
     await Promise.all(promises)
   }
 
-  static async closeDriver(...drivers: string[]): Promise<void> {
-    const promises = drivers.map(driver =>
-      DriverFactory.closeDriverConnection(driver),
+  static async closeConnections(...connections: string[]): Promise<void> {
+    const promises = connections.map(connection =>
+      DriverFactory.closeConnection(connection),
     )
 
     await Promise.all(promises)

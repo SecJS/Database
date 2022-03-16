@@ -145,6 +145,12 @@ export class DriverFactory {
     )
   }
 
+  static async closeConnection(conName: string) {
+    const conConfig = this.getConnectionConfig(conName)
+
+    await this.closeDriverConnection(conConfig.driver)
+  }
+
   private static getConnectionConfig(conName: string) {
     if (conName === 'default') conName = Config.get('database.default')
 

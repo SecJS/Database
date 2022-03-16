@@ -387,7 +387,7 @@ describe('\n Database Mongo Class', () => {
   })
 
   afterAll(async () => {
-    await Database.closeDriver('sqlite', 'mongo')
+    await Database.closeConnections('sqlite', 'mongo')
 
     await replset.stop()
   })

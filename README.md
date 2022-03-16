@@ -148,15 +148,90 @@ export default {
 
 > With the config/database file created you can use Database class to start handling operations in your database.
 
+#### Connecting to database
+
+```ts
+import { Database } from '@secjs/database'
+
+// Database class will always use the default value set in config/database 
+// to handle operations, in this case, postgres.
+
+// If true will force the creation of the connection for that driver 
+// even if that driver is already connected to database
+const force = false // default is false
+
+// If true will save the connection inside DriverFactory and this connection
+// will be shared in all Database/Driver instances that use this connection
+const saveOnDriver = true // default is true
+
+// You can create the connection for postgres calling connect method
+const database = await new Database()
+  .connection('postgres')
+  .connect(force, saveOnDriver)
+
+// Now every time that you need postgres connection, you don't need to call connect again
+const newDb = new Database().connection('postgres')
+// Database/Driver always share the same database connection for each instance!
+
+// We recommend using the static method createConnections in the application startup.
+// It will create the connections according to config/database file
+await Database.createConnections('postgres', 'mongo')
+
+// Now you don't need to call connect method when changing your connection
+database.connection('mongo') // will use mongo driver
+```
+
+#### Disconnecting from database
+
+```ts
+// There are three ways to disconect from database
+
+// WARN - Becarefull with close if you are using a shared connection, 
+// it will close the connection for all Database/Driver instances 
+
+// 1 - Calling close in the database instance
+await database.close()
+
+// 2 - Calling the static closeConnections method
+await Database.closeConnections('postgres', 'mongo')
+
+// 3 - Calling the static closeAllDrivers method
+await Database.closeAllDrivers() // Close all Drivers connections inside DriverFactory
+```
+
+#### Creating a specific connection with database subscribing configs in runtime
+
+```ts
+// As you can see above, each Driver class share the same database connection.
+// But maybe you need to create a specific connection with runtime configurations,
+// without implicating in other Driver connections.
+
+const force = true
+const saveOnDriver = false
+const runtimeConfigs = { database: 'testing' }
+
+const runtimeDb = new Database()
+  .connection('postgres', runtimeConfigs)
+  // You need to set force as true and saveOnDriver as false, 
+  // this way you will force creating a new connection for postgres but
+  // it will not implicate in other Database/Driver instances connections. 
+  // We can use connect method this way to create a specific connection
+  // to work on.
+  .connect(force, saveOnDriver)
+
+// This connection won't be available in static method Database.closeDriver.
+// If calling this method it will close the main PostgresDriver connection
+await Database.closeDriver('postgres')
+
+// So always remember closing this connection!
+await runtimeDb.close()
+```
+
 #### Create/drop tables and databases
 
 ```ts
 import { Knex } from 'knex'
 import { Database, TableBuilder } from '@secjs/database'
-
-// Database class will always use the default value set in config/database 
-// to handle operations, in this case, postgres.
-const database = await new Database().connection('postgres').connect()
 
 // All SQL Drivers from Database are using Knex as query builder and for Mongo NoSQL, mongoose.
 await database.createTable('products', (tableBuilder: Knex.TableBuilder) => {
@@ -177,7 +252,7 @@ await database.createTable('product_details', (tableBuilder: Knex.TableBuilder) 
 // but it does not have all the methods from Knex table builder.
 
 // Changing the connection to mongo database
-await database.connection('mongo').connect()
+database.connection('mongo')
 
 // With mongo connection we do not have to specify the id because
 // mongoose auto create the _id property
@@ -200,10 +275,15 @@ await database.createDatabase('testing-database')
 // Then you can create a new database instance to connect to this new database
 const runtimeConfigurations = { database: 'testing-database' }
 
-const testingDatabase = await new Database(runtimeConfigurations).connection('mongo').connect()
+const testingDatabase = await new Database(runtimeConfigurations)
+  .connection('mongo')
+  // Force connection and don't save the connection 
+  .connect(true, false)
 
-// Or a more simple way using the same instance, is just calling the connection method again but with runtimeConfigs
-await database.connection('mongo', runtimeConfigurations).connect()
+// Do operations using testingDatabase....
+
+// Close the connection with testing database
+await testingDatabase.close()
 
 // You can drop databases too
 await database.dropDatabase('testing-database')
@@ -533,7 +613,7 @@ database.buildTable('products')
 
 // Clone the database query chain, this will create a new instance of the Database class
 // but with the exactly same query chain.
-const clonedDatabase = await database.clone()
+const clonedDatabase = database.clone()
 
 console.log(database === clonedDatabase) // false
 
@@ -554,30 +634,13 @@ const arrayOfIds = await client.insert({ name: 'AirPods 2' }, 'id')
 
 {
   // For mongoose you can set the Schema as type
-  await database.connection('mongo').connect()
+  database.connection('mongo')
 
   const { client, session } = await database.cloneQuery<UserSchema>()
 
   // If using session...
   const product = await client.insertOne({ name: 'AirPods 2' }, { session })
 }
-```
-
-### Subscribing configs of connections in runtime
-
-```ts
-// Using connection method approach
-await database
-  .connection('postgres', { database: 'test-db' })
-  .connect()
-
-// Using constructor method approach
-const newDatabase = new Database({ database: 'test-db' })
-
-// You can reset configs using an empty object in the connection method
-await database
-  .connection('postgres', {}) // Clear the runtime configuration
-  .connect()
 ```
 
 ### Extending connections and drivers
@@ -634,7 +697,8 @@ console.log(Database.drivers) // ['mysql', 'mongo', 'sqlite', 'mssql', 'postgres
 > Now, if you have implemented your connection in config/database, you can use him inside Database
 
 ```ts
-// Will use CustomDriver to handle the database operations
+// Will use CustomDriver to handle the database operations and 
+// save the shared connection in DriverFactory
 await database.connection('myconnection').connect()
 ```
 
