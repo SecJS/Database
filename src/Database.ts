@@ -38,6 +38,14 @@ export class Database implements DatabaseContract {
     DriverFactory.createDriver(name, driver)
   }
 
+  static async openConnections(...connections: string[]): Promise<void> {
+    const promises = connections.map(connection =>
+      DriverFactory.generateConnectionClient(connection, {}, true),
+    )
+
+    await Promise.all(promises)
+  }
+
   static async closeDriver(...drivers: string[]): Promise<void> {
     const promises = drivers.map(driver =>
       DriverFactory.closeDriverConnection(driver),

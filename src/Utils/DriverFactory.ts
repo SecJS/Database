@@ -39,21 +39,7 @@ export class DriverFactory {
   }
 
   static fabricate(conName: string, runtimeConfig: any = {}): DriverContract {
-    if (conName === 'default') conName = Config.get('database.default')
-
-    const conConfig = Config.get(`database.connections.${conName}`)
-
-    if (!conConfig) {
-      throw new NotImplementedException(
-        `Connection ${conName} is not configured inside database.connections object from config/database file`,
-      )
-    }
-
-    if (!this.drivers.has(conConfig.driver)) {
-      throw new NotImplementedException(
-        `Driver ${conConfig.driver} does not exist, use Database.build method to create a new driver`,
-      )
-    }
+    const conConfig = this.getConnectionConfig(conName)
 
     const { Driver, clientConnection } = this.drivers.get(conConfig.driver)
 
@@ -142,5 +128,40 @@ export class DriverFactory {
     this.drivers.set(driverName, driverObject)
 
     return client
+  }
+
+  static async generateConnectionClient(
+    conName?: string,
+    configs: any = {},
+    saveOnDriver = true,
+  ) {
+    const conConfig = this.getConnectionConfig(conName)
+
+    await this.generateDriverClient(
+      conConfig.driver,
+      conName,
+      configs,
+      saveOnDriver,
+    )
+  }
+
+  private static getConnectionConfig(conName: string) {
+    if (conName === 'default') conName = Config.get('database.default')
+
+    const conConfig = Config.get(`database.connections.${conName}`)
+
+    if (!conConfig) {
+      throw new NotImplementedException(
+        `Connection ${conName} is not configured inside database.connections object from config/database file`,
+      )
+    }
+
+    if (!this.drivers.has(conConfig.driver)) {
+      throw new NotImplementedException(
+        `Driver ${conConfig.driver} does not exist, use Database.build method to create a new driver`,
+      )
+    }
+
+    return conConfig
   }
 }
