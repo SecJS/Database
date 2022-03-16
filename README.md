@@ -219,9 +219,9 @@ const runtimeDb = new Database()
   // to work on.
   .connect(force, saveOnDriver)
 
-// This connection won't be available in static method Database.closeDriver.
+// This connection won't be available in static method Database.closeConnections.
 // If calling this method it will close the main PostgresDriver connection
-await Database.closeDriver('postgres')
+await Database.closeConnections('postgres')
 
 // So always remember closing this connection!
 await runtimeDb.close()
