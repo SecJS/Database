@@ -689,9 +689,16 @@ export default {
 const name = 'custom'
 const driver = CustomDriver
 
+// Will create the driver
 Database.build(name, driver)
 
-console.log(Database.drivers) // ['mysql', 'mongo', 'sqlite', 'mssql', 'postgres', 'custom']
+// List all Database drivers
+console.log(Database.drivers()) // ['mysql', 'mongo', 'sqlite', 'mssql', 'postgres', 'custom']
+
+const onlyConnected = true
+
+// List only Database drivers where there are a connection established
+console.log(Database.drivers(onlyConnected)) // ['postgres', 'mongo']
 ```
 
 > Now, if you have implemented your connection in config/database, you can use him inside Database
@@ -700,6 +707,8 @@ console.log(Database.drivers) // ['mysql', 'mongo', 'sqlite', 'mssql', 'postgres
 // Will use CustomDriver to handle the database operations and 
 // save the shared connection in DriverFactory
 await database.connection('myconnection').connect()
+
+console.log(Database.drivers(true)) // ['postgres', 'mongo', 'custom']
 ```
 
 ---

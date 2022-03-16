@@ -27,8 +27,8 @@ export class Database implements DatabaseContract {
     this.driver = DriverFactory.fabricate('default', runtimeConfig)
   }
 
-  static get drivers(): string[] {
-    return DriverFactory.availableDrivers()
+  static drivers(onlyConnected = false): string[] {
+    return DriverFactory.availableDrivers(onlyConnected)
   }
 
   static build(
@@ -39,6 +39,8 @@ export class Database implements DatabaseContract {
   }
 
   static async openConnections(...connections: string[]): Promise<void> {
+    new Config().safeLoad(Path.config('database'))
+
     const promises = connections.map(connection =>
       DriverFactory.generateConnectionClient(connection, {}, true),
     )

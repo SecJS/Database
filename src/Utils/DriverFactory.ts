@@ -34,8 +34,22 @@ export class DriverFactory {
     .set('postgres', { Driver: PostgresDriver })
     .set('sqlserver', { Driver: SqlServerDriver })
 
-  static availableDrivers(): string[] {
-    return [...this.drivers.keys()]
+  static availableDrivers(onlyConnected = false): string[] {
+    const availableDrivers = []
+
+    for (const [key, value] of this.drivers.entries()) {
+      if (onlyConnected) {
+        if (!value.clientConnection) continue
+
+        availableDrivers.push(key)
+
+        continue
+      }
+
+      availableDrivers.push(key)
+    }
+
+    return availableDrivers
   }
 
   static fabricate(conName: string, runtimeConfig: any = {}): DriverContract {
@@ -86,9 +100,6 @@ export class DriverFactory {
     else await client.destroy()
 
     driverObject.clientConnection = null
-    driverObject.Driver = new driverObject.Driver(
-      Config.get('database.default'),
-    )
 
     this.drivers.set(driverName, driverObject)
   }
@@ -101,7 +112,6 @@ export class DriverFactory {
     const driverObject = this.drivers.get(driverName)
 
     driverObject.clientConnection = clientConnection
-    driverObject.Driver = new driverObject.Driver(clientConnection)
 
     this.drivers.set(driverName, driverObject)
   }
