@@ -111,7 +111,7 @@ describe('\n Database PostgreSQL Class', () => {
   it('should be able to create and drop databases from different instances', async () => {
     await database.createDatabase('new-database')
 
-    const newDb = await new Database().connection('postgres', { database: 'new-database' }).connect()
+    const newDb = await new Database().connection('postgres', { database: 'new-database' }).connect(true, false)
 
     await newDb.createTable('products', tableBuilder => {
       tableBuilder.increments('id').primary()
@@ -396,11 +396,12 @@ describe('\n Database PostgreSQL Class', () => {
   })
 
   afterEach(async () => {
-    await database.connection('postgres').connect()
-
     await database.dropDatabase('new-database')
     await database.dropTable('product_details')
     await database.dropTable('products')
-    await database.close()
+  })
+
+  afterAll(async () => {
+    await Database.closeDriver('sqlite', 'postgres')
   })
 })

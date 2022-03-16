@@ -8,11 +8,11 @@
  */
 
 import { Knex } from 'knex'
-import { paginate, PaginatedResponse } from '@secjs/utils'
 import { Transaction } from '../Utils/Transaction'
+import { DriverFactory } from '../Utils/DriverFactory'
+import { paginate, PaginatedResponse } from '@secjs/utils'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
-import { ConnectionResolver } from '../Utils/ConnectionResolver'
 
 export class SqliteDriver implements DriverContract {
   private isConnected: boolean
@@ -117,13 +117,14 @@ export class SqliteDriver implements DriverContract {
     this.queryBuilder.on(event, callback)
   }
 
-  async connect(): Promise<void> {
-    if (this.isConnected) return
+  async connect(force = false, saveOnDriver = true): Promise<void> {
+    if (this.isConnected && !force) return
 
-    this.client = await ConnectionResolver.knex(
-      'better-sqlite3',
+    this.client = await DriverFactory.generateDriverClient(
+      'sqlite',
       this.connection,
       this.configs,
+      saveOnDriver,
     )
     this.queryBuilder = this.query()
 
@@ -149,11 +150,15 @@ export class SqliteDriver implements DriverContract {
   }
 
   async createDatabase(databaseName: string): Promise<void> {
-    await this.client.raw('CREATE DATABASE ??', databaseName)
+    try {
+      await this.client.raw('CREATE DATABASE ??', databaseName)
+    } catch (err) {}
   }
 
   async dropDatabase(databaseName: string): Promise<void> {
-    await this.client.raw('DROP DATABASE IF EXISTS ??', databaseName)
+    try {
+      await this.client.raw('DROP DATABASE IF EXISTS ??', databaseName)
+    } catch (err) {}
   }
 
   async createTable(

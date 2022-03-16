@@ -15,12 +15,12 @@ import {
   Schema,
 } from 'mongoose'
 import { ObjectID } from 'bson'
-import { Is, paginate, PaginatedResponse } from '@secjs/utils'
 import { Transaction } from '../Utils/Transaction'
+import { DriverFactory } from '../Utils/DriverFactory'
 import { TableBuilder } from '../Builders/TableBuilder'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
-import { ConnectionResolver } from '../Utils/ConnectionResolver'
+import { Is, paginate, PaginatedResponse } from '@secjs/utils'
 
 export class MongoDriver implements DriverContract {
   private defaultTable: string
@@ -32,27 +32,6 @@ export class MongoDriver implements DriverContract {
 
   private readonly configs: any
   private readonly connection: string
-
-  // This is important only for update and delete queries
-  private _where = {}
-  // This is important to be global in class to manipulate data before some operations
-  private _pipeline = []
-
-  private get where() {
-    const where = { ...this._where }
-
-    this._where = {}
-
-    return where
-  }
-
-  private get pipeline() {
-    const pipeline = [...this._pipeline]
-
-    this._pipeline = []
-
-    return pipeline
-  }
 
   constructor(
     client: any | string,
@@ -72,6 +51,28 @@ export class MongoDriver implements DriverContract {
     this.client = client
     this.session = session || null
     this.isConnected = true
+  }
+
+  // This is important only for update and delete queries
+  private _where = {}
+
+  private get where() {
+    const where = { ...this._where }
+
+    this._where = {}
+
+    return where
+  }
+
+  // This is important to be global in class to manipulate data before some operations
+  private _pipeline = []
+
+  private get pipeline() {
+    const pipeline = [...this._pipeline]
+
+    this._pipeline = []
+
+    return pipeline
   }
 
   async commit(): Promise<any | any[]> {
@@ -94,12 +95,14 @@ export class MongoDriver implements DriverContract {
     return doc
   }
 
-  async connect(): Promise<void> {
-    if (this.isConnected) return
+  async connect(force = false, saveOnDriver = true): Promise<void> {
+    if (this.isConnected && !force) return
 
-    this.client = await ConnectionResolver.mongoose(
+    this.client = await DriverFactory.generateDriverClient(
+      'mongo',
       this.connection,
       this.configs,
+      saveOnDriver,
     )
 
     this.isConnected = true
@@ -136,17 +139,27 @@ export class MongoDriver implements DriverContract {
   }
 
   async createDatabase(databaseName: string): Promise<void> {
-    const client = await ConnectionResolver.mongoose(this.connection, {
-      database: databaseName,
-    })
+    const client = await DriverFactory.generateDriverClient(
+      'mongo',
+      this.connection,
+      {
+        database: databaseName,
+      },
+      false,
+    )
 
     await client.close()
   }
 
   async dropDatabase(databaseName: string): Promise<void> {
-    const client = await ConnectionResolver.mongoose(this.connection, {
-      database: databaseName,
-    })
+    const client = await DriverFactory.generateDriverClient(
+      'mongo',
+      this.connection,
+      {
+        database: databaseName,
+      },
+      false,
+    )
 
     await client.dropDatabase()
     await client.close()

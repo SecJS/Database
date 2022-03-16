@@ -32,7 +32,7 @@ export interface DatabaseContract {
    * The most important method from drivers. Creates the connection with database
    *
    */
-  connect(): Promise<DatabaseContract>
+  connect(force?: boolean, saveOnDriver?: boolean): Promise<DatabaseContract>
 
   /**
    * On method
@@ -51,7 +51,7 @@ export interface DatabaseContract {
    * @return Return the actual database chain
    *
    */
-  clone(): Promise<DatabaseContract>
+  clone(): DatabaseContract
 
   /**
    * CloneQuery method

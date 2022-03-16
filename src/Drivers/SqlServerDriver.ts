@@ -8,11 +8,11 @@
  */
 
 import { Knex } from 'knex'
-import { paginate, PaginatedResponse } from '@secjs/utils'
 import { Transaction } from '../Utils/Transaction'
+import { DriverFactory } from '../Utils/DriverFactory'
+import { paginate, PaginatedResponse } from '@secjs/utils'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
-import { ConnectionResolver } from '../Utils/ConnectionResolver'
 
 export class SqlServerDriver implements DriverContract {
   private isConnected: boolean
@@ -117,13 +117,14 @@ export class SqlServerDriver implements DriverContract {
     this.queryBuilder.on(event, callback)
   }
 
-  async connect(): Promise<void> {
-    if (this.isConnected) return
+  async connect(force = false, saveOnDriver = true): Promise<void> {
+    if (this.isConnected && !force) return
 
-    this.client = await ConnectionResolver.knex(
-      'mssql',
+    this.client = await DriverFactory.generateDriverClient(
+      'mysql',
       this.connection,
       this.configs,
+      saveOnDriver,
     )
     this.queryBuilder = this.query()
 
