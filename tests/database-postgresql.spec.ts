@@ -49,6 +49,16 @@ describe('\n Database PostgreSQL Class', () => {
     expect(idOfProducts.length).toBe(3)
   })
 
+  it('should insert a product and return an array of names', async () => {
+    const nameOfProducts = await database.insert(
+      [{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }],
+      'name',
+    )
+
+    expect(nameOfProducts.length).toBe(3)
+    expect(nameOfProducts[0]).toBe('iPhone 10')
+  })
+
   it('should get the product from database', async () => {
     const [idIphone] = await database.insert({ name: 'iPhone 10' })
 
@@ -96,6 +106,26 @@ describe('\n Database PostgreSQL Class', () => {
     const [iphoneUpdated] = await database.buildWhere('id', iphone.id).updateAndGet('name', 'iPhone 11')
 
     expect(iphoneUpdated.name).toBe('iPhone 11')
+  })
+
+  it('should update the product in database and return the name', async () => {
+    const [iphone] = await database.insertAndGet({ name: 'iPhone 10' })
+
+    {
+      const [iphoneUpdated] = await database.buildWhere('id', iphone.id).update('name', 'iPhone 11', 'name')
+
+      expect(iphoneUpdated).toBe('iPhone 11')
+    }
+    {
+      const [iphoneUpdated] = await database.buildWhere('id', iphone.id).update({ name: 'iPhone 12' }, 'name')
+
+      expect(iphoneUpdated).toBe('iPhone 12')
+    }
+    {
+      const [iphoneUpdated] = await database.buildWhere('id', iphone.id).updateAndGet('name', 'iPhone 13', 'name')
+
+      expect(iphoneUpdated.name).toBe('iPhone 13')
+    }
   })
 
   it('should delete the product in database', async () => {

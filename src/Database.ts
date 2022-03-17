@@ -143,20 +143,28 @@ export class Database implements DatabaseContract {
     return this.driver.findMany()
   }
 
-  async insert(values: any | any[]): Promise<string[]> {
-    return this.driver.insert(values)
+  async insert(values: any | any[], returnKey = 'id'): Promise<string[]> {
+    return this.driver.insert(values, returnKey)
   }
 
-  async insertAndGet(values: any | any[]): Promise<any[]> {
-    return this.driver.insertAndGet(values)
+  async insertAndGet(values: any | any[], returnKey = 'id'): Promise<any[]> {
+    return this.driver.insertAndGet(values, returnKey)
   }
 
-  async update(key: any | string, value?: any): Promise<string[]> {
-    return this.driver.update(key, value)
+  async update(
+    key: any | string,
+    value?: any,
+    returnKey = 'id',
+  ): Promise<string[]> {
+    return this.driver.update(key, value, returnKey)
   }
 
-  async updateAndGet(key: any | string, value?: any): Promise<any[]> {
-    return this.driver.updateAndGet(key, value)
+  async updateAndGet(
+    key: any | string,
+    value?: any,
+    returnKey = 'id',
+  ): Promise<any[]> {
+    return this.driver.updateAndGet(key, value, returnKey)
   }
 
   async delete(): Promise<number> {

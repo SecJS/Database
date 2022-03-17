@@ -239,16 +239,16 @@ export class MySqlDriver implements DriverContract {
     return this.buildSkip(page).buildLimit(limit).findMany()
   }
 
-  async insert(values: any | any[]): Promise<string[]> {
-    const insert: any[] = await this.queryBuilder.insert(values, 'id')
+  async insert(values: any | any[], returnKey = 'id'): Promise<string[]> {
+    const insert: any[] = await this.queryBuilder.insert(values, returnKey)
 
-    return insert.map(i => `${i.id}`)
+    return insert.map(i => `${i[returnKey]}`)
   }
 
-  async insertAndGet(values: any | any[]): Promise<any[]> {
-    const arrayOfId = await this.insert(values)
+  async insertAndGet(values: any | any[], returnKey = 'id'): Promise<any[]> {
+    const arrayOfId = await this.insert(values, returnKey)
 
-    return this.query().whereIn('id', arrayOfId)
+    return this.query().whereIn(returnKey, arrayOfId)
   }
 
   async max(column: string): Promise<number> {
@@ -299,22 +299,28 @@ export class MySqlDriver implements DriverContract {
     await this.queryBuilder.table(tableName).truncate()
   }
 
-  async update(key: any, value?: any): Promise<string[]> {
+  async update(key: any, value?: any, returnKey = 'id'): Promise<string[]> {
     if (typeof key === 'object') {
-      const data: any[] = await this.queryBuilder.update(key)
+      const _returnKey = value
 
-      return data.map(i => `${i.id}`)
+      const data: any[] = await this.queryBuilder.update(key, _returnKey)
+
+      return data.map(i => `${i[_returnKey]}`)
     }
 
-    const data: any[] = await this.queryBuilder.update(key, value, 'id')
+    const data: any[] = await this.queryBuilder.update(key, value, returnKey)
 
-    return data.map(i => `${i.id}`)
+    return data.map(i => `${i[returnKey]}`)
   }
 
-  async updateAndGet(key: any, value?: any): Promise<any[]> {
-    const arrayOfId = await this.update(key, value)
+  async updateAndGet(key: any, value?: any, returnKey = 'id'): Promise<any[]> {
+    let _returnKey = returnKey
 
-    return this.query().whereIn('id', arrayOfId)
+    if (!returnKey) _returnKey = value
+
+    const arrayOfId = await this.update(key, value, returnKey)
+
+    return this.query().whereIn(_returnKey, arrayOfId)
   }
 
   async increment(column: string, value: number): Promise<void> {
