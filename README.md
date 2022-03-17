@@ -297,10 +297,26 @@ const productIds = await database
   .buildTable('products')
   .insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }, { name: 'iPhone 12' }])
 
+// WARN - ONLY FOR SQL
+{
+  // When Database insert the data he will always return an array of ID. 
+  // But you can change this behavior setting the returnKey value
+  const returnKey = 'name'
+  const productNames = await database
+    .buildTable('products')
+    .insert([{ name: 'iPhone 13' }], returnKey)
+
+  // The returnKey can be defined only in SQL Drivers because Mongo always returns the _id by default
+}
+
+const returnKeyId = 'id'
 // Insert and return an array of products objects
 const products = await database
   .buildTable('products')
-  .insertAndGet({ name: 'iPhone 13' })
+  // You can set returnKey here too, this way it will insert the product 
+  // and then find the products by the returnKey value, in this case, the id
+  // WARN - Remember, this is a SQL feature only and will not take effect in MongoDriver
+  .insertAndGet({ name: 'iPhone 13' }, returnKeyId)
 
 // WARN - buildTable method needs to be called only one time before the connection is stabilished.
 // when you call buildTable it saves in the Driver instance the table that you are working on.
@@ -336,10 +352,26 @@ const productsPaginated = await database.forPage(page, limit)
 ```ts
 const productIds = await database.insert([{ name: 'iPhone 10' }, { name: 'iPhone 11' }])
 
-// Be carefull with update, remember to always use where
+// WARN - ONLY FOR SQL
+{
+  // When Database update the data he will always return an array of ID.
+  // But you can change this behavior setting the returnKey value
+  const returnKey = 'name'
+  const productNames = await database
+    .buildTable('products')
+    .update([{ name: 'iPhone 13' }], returnKey)
+
+  // The returnKey can be defined only in SQL Drivers because Mongo always returns the _id by default
+}
+
+const returnKeyId = 'id'
+// WARN - Be carefull with update, remember to always use where
 const productsUpdated = await database
   .buildWhereIn('id', productIds)
-  .updateAndGet({ name: 'iPhone X' }) // or updateAngGet('name', 'iPhone X')
+  // You can set returnKey here too, this way it will update the product 
+  // and then find the products by the returnKey value, in this case, the id
+  // WARN - Remember, this is a SQL feature only and will not take effect in MongoDriver
+  .updateAndGet({ name: 'iPhone X' }, returnKeyId) // or updateAngGet('name', 'iPhone X', returnKeyId)
 
 console.log(productsUpdated) // [{ id: 1, name: 'iPhone X', quantity: 0 }, { id: 2, name: 'iPhone X', quantity: 0 }]
 ```

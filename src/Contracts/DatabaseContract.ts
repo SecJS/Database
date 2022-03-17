@@ -150,10 +150,11 @@ export interface DatabaseContract {
    * In case of bulk inserts only the last inserted id will be returned.
    *
    * @param values The values that are going to be inserted.
+   * @param returnKey The returned value from query default is id
    * @return The newly created id or ids inside array.
    *
    */
-  insert(values: any | any[]): Promise<string[]>
+  insert(values: any | any[], returnKey?: string): Promise<string[]>
 
   /**
    * InsertAndGet method
@@ -161,10 +162,11 @@ export interface DatabaseContract {
    * Same as insert but return an array with the values inserted
    *
    * @param values The values that are going to be inserted.
+   * @param returnKey The returned value from query default is id
    * @return The array with the values inserted.
    *
    */
-  insertAndGet(values: any | any[]): Promise<any[]>
+  insertAndGet(values: any | any[], returnKey?: string): Promise<any[]>
 
   /**
    * Update method
@@ -173,10 +175,11 @@ export interface DatabaseContract {
    *
    * @param key The key to be updated.
    * @param value The value of the key.
+   * @param returnKey The returned value from query default is id
    * @return The number of affected rows.
    *
    */
-  update(key: any | string, value?: any): Promise<string[]>
+  update(key: any | string, value?: any, returnKey?: string): Promise<string[]>
 
   /**
    * UpdateAndGet method
@@ -185,10 +188,15 @@ export interface DatabaseContract {
    *
    * @param key The key to be updated.
    * @param value The value of the key.
+   * @param returnKey The returned value from query default is id
    * @return The payload updated.
    *
    */
-  updateAndGet(key: any | string, value?: any): Promise<any[]>
+  updateAndGet(
+    key: any | string,
+    value?: any,
+    returnKey?: string,
+  ): Promise<any[]>
 
   /**
    * delete method
