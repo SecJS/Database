@@ -33,6 +33,14 @@ export class TableBuilder {
     return column
   }
 
+  timestamp(columnName: string): ColumnBuilder {
+    const column = new ColumnBuilder(columnName, this.timestamp.name)
+
+    this.columns.push(column)
+
+    return column
+  }
+
   string(columnName: string, length = 255): ColumnBuilder {
     const column = new ColumnBuilder(columnName, this.string.name, length)
 
@@ -78,8 +86,8 @@ export class TableBuilder {
       updatedAtName = String.toCamelCase(updatedAtName)
     }
 
-    const createdAtColumn = new ColumnBuilder(createdAtName, 'date')
-    const updatedAtColumn = new ColumnBuilder(updatedAtName, 'date')
+    const createdAtColumn = new ColumnBuilder(createdAtName, 'timestamp')
+    const updatedAtColumn = new ColumnBuilder(updatedAtName, 'timestamp')
 
     if (defaultToNow) {
       let now: number | Date = new Date()

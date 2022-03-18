@@ -184,6 +184,7 @@ export class MongoDriver implements DriverContract {
       string: String,
       integer: Number,
       date: Date,
+      timestamp: Date,
       increments: Schema.Types.ObjectId,
       boolean: Boolean,
     }
