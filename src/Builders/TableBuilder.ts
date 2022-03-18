@@ -8,6 +8,7 @@
  */
 
 import { ColumnBuilder } from './ColumnBuilder'
+import { String } from '@secjs/utils'
 
 export class TableBuilder {
   private columns: ColumnBuilder[] = []
@@ -62,5 +63,36 @@ export class TableBuilder {
     this.columns.push(column)
 
     return column
+  }
+
+  timestamps(
+    useTimestamps = true,
+    defaultToNow = true,
+    useCamelCase = false,
+  ): void {
+    let createdAtName = 'created_at'
+    let updatedAtName = 'updated_at'
+
+    if (useCamelCase) {
+      createdAtName = String.toCamelCase(createdAtName)
+      updatedAtName = String.toCamelCase(updatedAtName)
+    }
+
+    const createdAtColumn = new ColumnBuilder(createdAtName, 'date')
+    const updatedAtColumn = new ColumnBuilder(updatedAtName, 'date')
+
+    if (defaultToNow) {
+      let now: number | Date = new Date()
+
+      if (useTimestamps) {
+        now = Date.now()
+      }
+
+      createdAtColumn.defaultTo(now)
+      updatedAtColumn.defaultTo(now)
+    }
+
+    this.columns.push(createdAtColumn)
+    this.columns.push(updatedAtColumn)
   }
 }
