@@ -124,7 +124,7 @@ export interface DriverContract {
    * @param tableName Table selected to run the query.
    *
    */
-  buildTable(tableName: string): DriverContract
+  buildTable(tableName: string | any): DriverContract
 
   /**
    * BuildSelect method

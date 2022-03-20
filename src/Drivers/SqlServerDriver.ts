@@ -10,9 +10,9 @@
 import { Knex } from 'knex'
 import { Transaction } from '../Utils/Transaction'
 import { DriverFactory } from '../Utils/DriverFactory'
-import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
 import { Is, paginate, PaginatedResponse } from '@secjs/utils'
+import { NullQueryBuilderException } from '../Exceptions/NullQueryBuilderException'
 
 export class SqlServerDriver implements DriverContract {
   private isConnected: boolean
@@ -43,9 +43,7 @@ export class SqlServerDriver implements DriverContract {
 
   private get queryBuilder() {
     if (!this._queryBuilder) {
-      throw new InternalServerException(
-        `Query builder does not exist in ${SqlServerDriver.name}, this usually happens when you don't have called connect method to create the connection with database`,
-      )
+      throw new NullQueryBuilderException(SqlServerDriver.name)
     }
 
     return this._queryBuilder
@@ -93,12 +91,6 @@ export class SqlServerDriver implements DriverContract {
   }
 
   async commit(value?: any): Promise<any> {
-    if (!this.client.isTransaction) {
-      throw new InternalServerException(
-        'Client is not a transaction to be committed',
-      )
-    }
-
     const client: any = this.client
     const committedTrx = await client.commit(value)
 
@@ -109,12 +101,6 @@ export class SqlServerDriver implements DriverContract {
   }
 
   async rollback(error?: any): Promise<any> {
-    if (!this.client.isTransaction) {
-      throw new InternalServerException(
-        'Client is not a transaction to be rollback',
-      )
-    }
-
     const client: any = this.client
     const rolledBackTrx = await client.rollback(error)
 

@@ -9,9 +9,9 @@
 
 import '@secjs/env/src/utils/global'
 
+import { Schema } from 'mongoose'
 import { Database } from '../src/Database'
 import { MongoMemoryReplSet } from 'mongodb-memory-server'
-import { TableBuilder } from '../src/Builders/TableBuilder'
 import { DatabaseContract } from '../src/Contracts/DatabaseContract'
 
 describe('\n Database Mongo Class', () => {
@@ -43,17 +43,6 @@ describe('\n Database Mongo Class', () => {
     database = await new Database().connection('mongo').connect()
 
     database.buildTable('products')
-
-    await database.createTable('products', (tableBuilder: TableBuilder) => {
-      tableBuilder.string('name').notNullable()
-      tableBuilder.integer('quantity').nullable().defaultTo(0)
-    })
-
-    await database.createTable('product_details', (tableBuilder: TableBuilder) => {
-      tableBuilder.string('detail').notNullable()
-      tableBuilder.string('productId').notNullable()
-      tableBuilder.string('product').notNullable().references('_id').inTable('products')
-    })
   })
 
   beforeEach(async () => {
@@ -131,10 +120,6 @@ describe('\n Database Mongo Class', () => {
     await database.createDatabase('new-database')
 
     const newDb = await new Database().connection('mongo', { database: 'new-database' }).connect(true, false)
-
-    await newDb.createTable('products', () => ({
-      name: { type: String, required: true },
-    }))
 
     const [product] = await newDb.buildTable('products').insertAndGet({ name: 'Product' })
 
@@ -366,6 +351,41 @@ describe('\n Database Mongo Class', () => {
 
     const iphones = await database
       .buildTable('products')
+      .buildSelect('name', 'quantity')
+      .buildGroupBy('name', 'quantity')
+      .buildOrderBy('quantity', 'desc')
+      .buildHaving('quantity', '<=', 40)
+      .findMany()
+
+    expect(iphones.length).toBe(6)
+
+    expect(iphones[0].name).toBe('iPhone 6')
+    expect(iphones[0].quantity).toBe(40)
+
+    expect(iphones[5].name).toBe('iPhone 1')
+    expect(iphones[5].quantity).toBe(-40)
+  })
+
+  it('should be able to set an schema in buildTable for MongoDriver', async () => {
+    const schema = new Schema({
+      name: String,
+      quantity: Number,
+    })
+
+    await database.buildTable({ name: 'Product', collection: 'products', schema }).insert([
+      { name: 'iPhone 1', quantity: -40 },
+      { name: 'iPhone 2', quantity: -30 },
+      { name: 'iPhone 3', quantity: 10 },
+      { name: 'iPhone 4', quantity: 20 },
+      { name: 'iPhone 5', quantity: 30 },
+      { name: 'iPhone 6', quantity: 40 },
+      { name: 'iPhone 6', quantity: 40 },
+      { name: 'iPhone 7', quantity: 50 },
+      { name: 'iPhone 8', quantity: 60 },
+    ])
+
+    const iphones = await database
+      .buildTable({ name: 'Product', schema })
       .buildSelect('name', 'quantity')
       .buildGroupBy('name', 'quantity')
       .buildOrderBy('quantity', 'desc')

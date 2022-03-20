@@ -12,18 +12,19 @@ import {
   Collection,
   Connection,
   isValidObjectId,
-  Schema,
 } from 'mongoose'
 import { ObjectID } from 'bson'
 import { Transaction } from '../Utils/Transaction'
 import { DriverFactory } from '../Utils/DriverFactory'
-import { TableBuilder } from '../Builders/TableBuilder'
 import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
 import { Is, paginate, PaginatedResponse } from '@secjs/utils'
+import { TableNotSetException } from '../Exceptions/TableNotSetException'
+import { NotImplementedException } from 'src/Exceptions/NotImplementedException'
+import { NullQueryBuilderException } from '../Exceptions/NullQueryBuilderException'
 
 export class MongoDriver implements DriverContract {
-  private defaultTable: string
+  private defaultTable: string | any
 
   private client: Connection
   private session: ClientSession
@@ -55,9 +56,7 @@ export class MongoDriver implements DriverContract {
 
   private get queryBuilder() {
     if (!this._queryBuilder) {
-      throw new InternalServerException(
-        `Query builder does not exist in ${MongoDriver.name}, this usually happens when you don't have called connect method to create the connection with database`,
-      )
+      throw new NullQueryBuilderException(MongoDriver.name)
     }
 
     return this._queryBuilder
@@ -175,53 +174,8 @@ export class MongoDriver implements DriverContract {
     await client.close()
   }
 
-  async createTable(
-    tableName: string,
-    callback: (tableBuilder: TableBuilder) => any,
-  ): Promise<void> {
-    // Type dictionary for mongoose schema
-    const typeDictionary = {
-      string: String,
-      integer: Number,
-      date: Date,
-      timestamp: Date,
-      increments: Schema.Types.ObjectId,
-      boolean: Boolean,
-    }
-
-    const tableBuilder = new TableBuilder()
-
-    // Execute callback to generate columns
-    callback(tableBuilder)
-
-    const transpiledObject = {}
-
-    tableBuilder.toJSON().forEach(column => {
-      transpiledObject[column.columnName] = {
-        type: typeDictionary[column.columnType],
-        index: column.primary,
-        unique: column.unique,
-        default: column.defaultTo,
-        required: !column.nullable,
-      }
-
-      if (column.type === 'enum') {
-        transpiledObject[column.columnName].enum = column.enumValues
-      } else {
-        transpiledObject[column.columnName].maxLength = column.columnLength
-      }
-
-      if (column.references) {
-        transpiledObject[column.columnName].type = typeDictionary.increments
-        transpiledObject[
-          column.columnName
-        ].ref = `${column.references.inTable}.${column.references.columnName}`
-      }
-    })
-
-    const schema = new Schema(transpiledObject)
-
-    await this.client.model(tableName, schema).createCollection()
+  async createTable(): Promise<void> {
+    throw new NotImplementedException(this.createTable.name, MongoDriver.name)
   }
 
   async dropTable(tableName: string): Promise<void> {
@@ -264,12 +218,20 @@ export class MongoDriver implements DriverContract {
 
   query(): Collection {
     if (!this.defaultTable) {
-      throw new InternalServerException(
-        'Table is not set, use buildTable method to set mongo collection.',
-      )
+      throw new TableNotSetException(MongoDriver.name)
     }
 
-    return this.client.collection(this.defaultTable, { session: this.session })
+    if (Is.String(this.defaultTable)) {
+      return this.client.collection(this.defaultTable, {
+        session: this.session,
+      })
+    }
+
+    return this.client.model(
+      this.defaultTable.name,
+      this.defaultTable.schema,
+      this.defaultTable.collection,
+    ).collection
   }
 
   async find(): Promise<any> {
@@ -618,7 +580,7 @@ export class MongoDriver implements DriverContract {
     await this.rollback()
   }
 
-  buildTable(tableName: string): DriverContract {
+  buildTable(tableName: string | any): DriverContract {
     this.defaultTable = tableName
     this._queryBuilder = this.query()
 
@@ -878,11 +840,7 @@ export class MongoDriver implements DriverContract {
   }
 
   buildWhereRaw(): DriverContract {
-    console.log(
-      `Method ${this.buildWhereRaw.name} has not been implemented in ${MongoDriver.name}`,
-    )
-
-    return this
+    throw new NotImplementedException(this.buildWhereRaw.name, MongoDriver.name)
   }
 
   buildJoin(
@@ -918,11 +876,7 @@ export class MongoDriver implements DriverContract {
   }
 
   buildJoinRaw(): DriverContract {
-    console.log(
-      `Method ${this.buildJoinRaw.name} has not been implemented in ${MongoDriver.name}`,
-    )
-
-    return this
+    throw new NotImplementedException(this.buildJoinRaw.name, MongoDriver.name)
   }
 
   buildDistinct(...columns: string[]): DriverContract {
@@ -958,11 +912,10 @@ export class MongoDriver implements DriverContract {
   }
 
   buildGroupByRaw(): DriverContract {
-    console.log(
-      `Method ${this.buildGroupByRaw.name} has not been implemented in ${MongoDriver.name}`,
+    throw new NotImplementedException(
+      this.buildGroupByRaw.name,
+      MongoDriver.name,
     )
-
-    return this
   }
 
   buildOrderBy(column: string, direction?: 'asc' | 'desc'): DriverContract {
@@ -972,11 +925,7 @@ export class MongoDriver implements DriverContract {
   }
 
   buildOrderByRaw(): DriverContract {
-    console.log(
-      `Method ${this.buildOrderByRaw.name} has not been implemented in ${MongoDriver.name}`,
-    )
-
-    return this
+    throw new NotImplementedException(this.buildOrderBy.name, MongoDriver.name)
   }
 
   buildHaving(column: string, operator: string, value: any): DriverContract {

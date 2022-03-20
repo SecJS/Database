@@ -232,6 +232,7 @@ await runtimeDb.close()
 ```ts
 import { Knex } from 'knex'
 import { Database, TableBuilder } from '@secjs/database'
+import database from './database'
 
 // All SQL Drivers from Database are using Knex as query builder and for Mongo NoSQL, mongoose.
 await database.createTable('products', (tableBuilder: Knex.TableBuilder) => {
@@ -254,16 +255,17 @@ await database.createTable('product_details', (tableBuilder: Knex.TableBuilder) 
 // Changing the connection to mongo database
 database.connection('mongo')
 
-// With mongo connection we do not have to specify the id because
-// mongoose auto create the _id property
-await database.createTable('products', (tableBuilder: TableBuilder) => {
-  tableBuilder.string('name').nullable()
-  tableBuilder.integer('quantity').nullable().defaultTo(0)
+// With mongo connection we can't create the table. But we can set our schema
+// in buildTable method
+const productSchema = new Schema({
+  name: String,
+  quantity: Number,
 })
 
-await database.createTable('product_details', (tableBuilder: TableBuilder) => {
-  tableBuilder.string('detail').nullable()
-  tableBuilder.integer('productId').references('id').inTable('products')
+database.buildTable({
+  name: 'Product',
+  collection: 'products',
+  schema: productSchema
 })
 
 // Drop table products from database

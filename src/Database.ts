@@ -239,7 +239,7 @@ export class Database implements DatabaseContract {
     return this.driver.close()
   }
 
-  buildTable(tableName: string): DatabaseContract {
+  buildTable(tableName: string | any): DatabaseContract {
     this.driver.buildTable(tableName)
 
     return this

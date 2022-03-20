@@ -371,7 +371,7 @@ export interface DatabaseContract {
    * @param tableName Table selected to run the query.
    *
    */
-  buildTable(tableName: string): DatabaseContract
+  buildTable(tableName: string | any): DatabaseContract
 
   /**
    * BuildSelect method
