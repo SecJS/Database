@@ -13,7 +13,7 @@ import {
   Connection,
   isValidObjectId,
 } from 'mongoose'
-import { ObjectID } from 'bson'
+import { ObjectID } from 'mongodb'
 import { Transaction } from '../Utils/Transaction'
 import { DriverFactory } from '../Utils/DriverFactory'
 import { InternalServerException } from '@secjs/exceptions'
@@ -69,6 +69,7 @@ export class MongoDriver implements DriverContract {
     const where = { ...this._where }
 
     this._where = {}
+    this._pipeline = []
 
     return where
   }
@@ -79,6 +80,7 @@ export class MongoDriver implements DriverContract {
   private get pipeline() {
     const pipeline = [...this._pipeline]
 
+    this._where = {}
     this._pipeline = []
 
     return pipeline
