@@ -260,12 +260,22 @@ export class MongoDriver implements DriverContract {
 
   async insert(values: any | any[]): Promise<string[]> {
     if (Is.Array(values)) {
+      values.forEach(value => {
+        Object.keys(value).forEach(key => {
+          value[key] = MongoDriver.stringToObjectId(value[key])
+        })
+      })
+
       const data = await this.queryBuilder.insertMany(values)
 
       return Object.keys(data.insertedIds).map(key =>
         data.insertedIds[key].toString(),
       )
     }
+
+    Object.keys(values).forEach(key => {
+      values[key] = MongoDriver.stringToObjectId(values[key])
+    })
 
     const data = await this.queryBuilder.insertOne(values, {
       session: this.session,
@@ -283,7 +293,11 @@ export class MongoDriver implements DriverContract {
   }
 
   async update(key: any | string, value?: any): Promise<string[]> {
-    if (typeof key === 'object') {
+    if (Is.Object(key)) {
+      Object.keys(key).forEach(k => {
+        key[k] = MongoDriver.stringToObjectId(key[k])
+      })
+
       const { modifiedCount } = await this.queryBuilder.updateMany(
         this._where,
         { $set: key },
@@ -300,6 +314,8 @@ export class MongoDriver implements DriverContract {
 
       return data.map(model => model._id.toString())
     }
+
+    value = MongoDriver.stringToObjectId(value)
 
     const { modifiedCount } = await this.queryBuilder.updateMany(
       this._where,
@@ -319,7 +335,11 @@ export class MongoDriver implements DriverContract {
   }
 
   async updateAndGet(key: any | string, value?: any): Promise<any[]> {
-    if (typeof key === 'object') {
+    if (Is.Object(key)) {
+      Object.keys(key).forEach(k => {
+        key[k] = MongoDriver.stringToObjectId(key[k])
+      })
+
       const { modifiedCount } = await this.queryBuilder.updateMany(
         this._where,
         { $set: key },
@@ -334,6 +354,8 @@ export class MongoDriver implements DriverContract {
 
       return this.queryBuilder.find(this.where).toArray()
     }
+
+    value = MongoDriver.stringToObjectId(value)
 
     const { modifiedCount } = await this.queryBuilder.updateMany(
       this._where,
