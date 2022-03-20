@@ -20,7 +20,7 @@ import { InternalServerException } from '@secjs/exceptions'
 import { DriverContract } from '../Contracts/DriverContract'
 import { Is, paginate, PaginatedResponse } from '@secjs/utils'
 import { TableNotSetException } from '../Exceptions/TableNotSetException'
-import { NotImplementedException } from 'src/Exceptions/NotImplementedException'
+import { NotImplementedException } from '../Exceptions/NotImplementedException'
 import { NullQueryBuilderException } from '../Exceptions/NullQueryBuilderException'
 
 export class MongoDriver implements DriverContract {
