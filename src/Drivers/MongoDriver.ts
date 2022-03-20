@@ -13,7 +13,7 @@ import {
   Connection,
   isValidObjectId,
 } from 'mongoose'
-import { ObjectID } from 'mongodb'
+import { ObjectID } from 'bson'
 import { Transaction } from '../Utils/Transaction'
 import { DriverFactory } from '../Utils/DriverFactory'
 import { InternalServerException } from '@secjs/exceptions'
@@ -84,6 +84,14 @@ export class MongoDriver implements DriverContract {
     this._pipeline = []
 
     return pipeline
+  }
+
+  private static stringToObjectId(data: string | ObjectID) {
+    if (Is.String(data) && isValidObjectId(data)) {
+      return new ObjectID(data)
+    }
+
+    return data
   }
 
   async commit(): Promise<any | any[]> {
@@ -608,10 +616,8 @@ export class MongoDriver implements DriverContract {
     statement: string | Record<string, any>,
     value?: any,
   ): DriverContract {
-    if (typeof statement === 'string') {
-      if (isValidObjectId(value) && Is.String(value)) {
-        value = new ObjectID(value)
-      }
+    if (Is.String(statement)) {
+      value = MongoDriver.stringToObjectId(value)
 
       this._where[statement] = value
       this._pipeline.push({ $match: this._where })
@@ -619,9 +625,9 @@ export class MongoDriver implements DriverContract {
       return this
     }
 
-    if (statement._id && Is.String(statement._id)) {
-      statement._id = new ObjectID(statement._id)
-    }
+    Object.keys(statement).forEach(key => {
+      statement[key] = MongoDriver.stringToObjectId(statement[key])
+    })
 
     this._where = {
       ...this._where,
@@ -638,9 +644,7 @@ export class MongoDriver implements DriverContract {
     value?: any,
   ): DriverContract {
     if (typeof statement === 'string') {
-      if (isValidObjectId(value) && Is.String(value)) {
-        value = new ObjectID(value)
-      }
+      value = MongoDriver.stringToObjectId(value)
 
       this._where[statement] = { $regex: value }
       this._pipeline.push({ $match: this._where })
@@ -648,9 +652,9 @@ export class MongoDriver implements DriverContract {
       return this
     }
 
-    if (statement._id && Is.String(statement._id)) {
-      statement._id = new ObjectID(statement._id)
-    }
+    Object.keys(statement).forEach(key => {
+      statement[key] = MongoDriver.stringToObjectId(statement[key])
+    })
 
     this._where = {
       ...this._where,
@@ -665,9 +669,7 @@ export class MongoDriver implements DriverContract {
     value?: any,
   ): DriverContract {
     if (typeof statement === 'string') {
-      if (isValidObjectId(value) && Is.String(value)) {
-        value = new ObjectID(value)
-      }
+      value = MongoDriver.stringToObjectId(value)
 
       this._where[statement] = { $regex: value, $options: 'i' }
       this._pipeline.push({ $match: this._where })
@@ -675,9 +677,9 @@ export class MongoDriver implements DriverContract {
       return this
     }
 
-    if (statement._id && Is.String(statement._id)) {
-      statement._id = new ObjectID(statement._id)
-    }
+    Object.keys(statement).forEach(key => {
+      statement[key] = MongoDriver.stringToObjectId(statement[key])
+    })
 
     this._where = {
       ...this._where,
@@ -694,9 +696,7 @@ export class MongoDriver implements DriverContract {
     value?: any,
   ): DriverContract {
     if (typeof statement === 'string') {
-      if (isValidObjectId(value) && Is.String(value)) {
-        value = new ObjectID(value)
-      }
+      value = MongoDriver.stringToObjectId(value)
 
       this._where[statement] = { $or: value }
       this._pipeline.push({ $match: this._where })
@@ -704,9 +704,9 @@ export class MongoDriver implements DriverContract {
       return this
     }
 
-    if (statement._id && Is.String(statement._id)) {
-      statement._id = new ObjectID(statement._id)
-    }
+    Object.keys(statement).forEach(key => {
+      statement[key] = MongoDriver.stringToObjectId(statement[key])
+    })
 
     this._where = {
       ...this._where,
@@ -722,9 +722,7 @@ export class MongoDriver implements DriverContract {
     value?: any,
   ): DriverContract {
     if (typeof statement === 'string') {
-      if (isValidObjectId(value) && Is.String(value)) {
-        value = new ObjectID(value)
-      }
+      value = MongoDriver.stringToObjectId(value)
 
       this._where[statement] = { $not: value }
       this._pipeline.push({ $match: this._where })
@@ -732,9 +730,9 @@ export class MongoDriver implements DriverContract {
       return this
     }
 
-    if (statement._id && Is.String(statement._id)) {
-      statement._id = new ObjectID(statement._id)
-    }
+    Object.keys(statement).forEach(key => {
+      statement[key] = MongoDriver.stringToObjectId(statement[key])
+    })
 
     this._where = {
       ...this._where,
@@ -746,15 +744,7 @@ export class MongoDriver implements DriverContract {
   }
 
   buildWhereIn(columnName: string, values: any[]): DriverContract {
-    if (columnName === '_id') {
-      values = values.map(value => {
-        if (Is.String(value)) {
-          return new ObjectID(value)
-        }
-
-        return value
-      })
-    }
+    values = values.map(value => MongoDriver.stringToObjectId(value))
 
     this._where[columnName] = { $in: values }
     this._pipeline.push({ $match: this._where })
@@ -763,15 +753,7 @@ export class MongoDriver implements DriverContract {
   }
 
   buildWhereNotIn(columnName: string, values: any[]): DriverContract {
-    if (columnName === '_id') {
-      values = values.map(value => {
-        if (Is.String(value)) {
-          return new ObjectID(value)
-        }
-
-        return value
-      })
-    }
+    values = values.map(value => MongoDriver.stringToObjectId(value))
 
     this._where[columnName] = { $nin: values }
     this._pipeline.push({ $match: this._where })
@@ -808,15 +790,8 @@ export class MongoDriver implements DriverContract {
   }
 
   buildWhereBetween(columnName: string, values: [any, any]): DriverContract {
-    if (columnName === '_id') {
-      if (Is.String(values[0])) {
-        values[0] = new ObjectID(values[0])
-      }
-
-      if (Is.String(values[1])) {
-        values[1] = new ObjectID(values[1])
-      }
-    }
+    values[0] = MongoDriver.stringToObjectId(values[0])
+    values[1] = MongoDriver.stringToObjectId(values[1])
 
     this._where[columnName] = { $gte: values[0], $lte: values[1] }
     this._pipeline.push({ $match: this._where })
@@ -825,15 +800,8 @@ export class MongoDriver implements DriverContract {
   }
 
   buildWhereNotBetween(columnName: string, values: [any, any]): DriverContract {
-    if (columnName === '_id') {
-      if (Is.String(values[0])) {
-        values[0] = new ObjectID(values[0])
-      }
-
-      if (Is.String(values[1])) {
-        values[1] = new ObjectID(values[1])
-      }
-    }
+    values[0] = MongoDriver.stringToObjectId(values[0])
+    values[1] = MongoDriver.stringToObjectId(values[1])
 
     this._where[columnName] = { $not: { $gte: values[0], $lte: values[1] } }
     this._pipeline.push({ $match: this._where })
@@ -931,9 +899,7 @@ export class MongoDriver implements DriverContract {
   }
 
   buildHaving(column: string, operator: string, value: any): DriverContract {
-    if (column === '_id' && Is.String(value)) {
-      value = new ObjectID(value)
-    }
+    value = MongoDriver.stringToObjectId(value)
 
     const operatorDictionary = {
       '>=': { $gte: value },
