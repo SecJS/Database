@@ -298,17 +298,11 @@ export class MongoDriver implements DriverContract {
         key[k] = MongoDriver.stringToObjectId(key[k])
       })
 
-      const { modifiedCount } = await this.queryBuilder.updateMany(
+      await this.queryBuilder.updateMany(
         this._where,
         { $set: key },
         { upsert: false },
       )
-
-      if (!modifiedCount) {
-        this._where = {}
-
-        return []
-      }
 
       const data = await this.queryBuilder.find(this.where).toArray()
 
@@ -317,17 +311,11 @@ export class MongoDriver implements DriverContract {
 
     value = MongoDriver.stringToObjectId(value)
 
-    const { modifiedCount } = await this.queryBuilder.updateMany(
+    await this.queryBuilder.updateMany(
       this._where,
       { $set: { [key]: value } },
       { upsert: false },
     )
-
-    if (!modifiedCount) {
-      this._where = {}
-
-      return []
-    }
 
     const data = await this.queryBuilder.find(this.where).toArray()
 
@@ -340,34 +328,22 @@ export class MongoDriver implements DriverContract {
         key[k] = MongoDriver.stringToObjectId(key[k])
       })
 
-      const { modifiedCount } = await this.queryBuilder.updateMany(
+      await this.queryBuilder.updateMany(
         this._where,
         { $set: key },
         { upsert: false },
       )
-
-      if (!modifiedCount) {
-        this._where = {}
-
-        return []
-      }
 
       return this.queryBuilder.find(this.where).toArray()
     }
 
     value = MongoDriver.stringToObjectId(value)
 
-    const { modifiedCount } = await this.queryBuilder.updateMany(
+    await this.queryBuilder.updateMany(
       this._where,
       { $set: { [key]: value } },
       { upsert: false },
     )
-
-    if (!modifiedCount) {
-      this._where = {}
-
-      return []
-    }
 
     return this.queryBuilder.find(this.where).toArray()
   }
